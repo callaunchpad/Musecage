@@ -51,7 +51,7 @@ class KNNModel():
         self.q_id_to_im_id = {self.q_ids[i]:self.im_ids[i] for i in range(len(self.q_ids))}
         self.im_id_to_ans = {self.im_ids[i]:self.ans[i] for i in range(len(self.im_ids))}
 
-    def predict(self, test_q_arr, test_q_ids):
+    def predict(self, test_q_arr, test_q_ids, test_im_ids):
         """
         Returns list of answers corresponding to full prediction pipeline output on list of test image question/question ids.
         """
@@ -62,10 +62,11 @@ class KNNModel():
                 print("Not trained/no embeddings index matrix.")
         
         preds = []
-        for q_embed in test_q_embed:
+        for ind in range(len(test_q_embed)):
+            q_embed = test_q_embed[ind]
             closest_q_inds = self.knn_qs.kneighbors(test_q_embed)
             knearest_im_ids = [self.q_id_to_im_id[self.q_ids[q]] for q in closest_q_inds[1][0]]
-            closest_im_id = self.get_closest_image(self.q_id_to_im_id[q_id_arr[-1]], knearest_im_ids)
+            closest_im_id = self.get_closest_image(test_im_ids[ind], knearest_im_ids)
             counts = Counter(self.im_id_to_ans[closest_im_id])
             pred = [p[0] for p in counts.most_common(self.output_n)]
             preds.append(pred)
@@ -124,39 +125,6 @@ class KNNModel():
         return img_id_list[i]
 
 data_arr = get_by_ques_type(["how many"])
-
-q_arr = [format_q_for_embed(val['question']) for val in data_arr]
-q_id_arr = [val['question_id'] for val in data_arr]
-q_id_to_q = dict(zip(q_id_arr, q_arr))
-im_id_arr = [val['image_id'] for val in data_arr]
-
-q_id_to_im_id = {val['question_id']:val['image_id'] for val in data_arr}
-im_id_to_q_id = {val['image_id']:val['question_id'] for val in data_arr}
-
-test_q_id, test_q = q_id_arr[-1], q_arr[-1]
-
-ans_arr = [val['answers'] for val in data_arr]
-
-model = KNNModel(5)
-model.train(q_arr, q_id_arr, im_id_arr, ans_arr)
-preds = model.predict([test_q], [test_q_id])
-
-print(preds)
-
-# print(q_id_to_q[test_q_id])
-# impath = img_id_to_path(q_id_to_im_id[test_q_id])
-# I = io.imread(impath)
-# plt.imshow(I)
-# plt.show()
-
-# print(closest)
-
-# print(q_id_to_q[im_id_to_q_id[closest]])
-# closest_path = img_id_to_path(closest)
-# I = io.imread(closest_path)
-# plt.imshow(I)
-# plt.show()
-
 
 
 
