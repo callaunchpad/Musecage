@@ -17,7 +17,7 @@ from load_create_data import *
 
 class KNNModel():
 
-    def __init__(self, k, q_embed_type="glove", glove_embed_dim=300, discard=False, output_n=1):
+    def __init__(self, k, q_embed_type="glove", glove_embed_dim=300, discard=False, output_n=1, verbose=True, pred_verb_num=5):
         """
         Creates KNNModel based on:
             - k: number of neighbors for model
@@ -31,6 +31,8 @@ class KNNModel():
         self.discard = discard
         self.glove_embed_dim = glove_embed_dim
         self.output_n = output_n
+        self.verbose = verbose
+        self.pred_verb_num = pred_verb_num
 
         self.vision_model = VGG16(include_top=True, weights="imagenet", input_tensor=None, input_shape=None, pooling=None, classes=1000)
         self.knn_qs = KNeighborsClassifier(n_neighbors=self.k)
@@ -41,17 +43,25 @@ class KNNModel():
         """
         if self.q_embed_type == "glove":
             self.embed_index = load_glove()
+            if self.verbose:
+                print("Started embedding training data...")
             self.q_embed = embed_question(q_arr, self.embed_index, self.glove_embed_dim, self.discard)
-        
+            if self.verbose:
+                print("Finished embedding training data.")
+
         self.q_ids = q_ids
+        if self.verbose:
+            print("Started fitting KNN...")
         self.knn_qs.fit(self.q_embed, self.q_ids)
+        if self.verbose:
+            print("Finished fitting KNN.")
         
         self.im_ids = im_ids
         self.ans = ans
         self.q_id_to_im_id = {self.q_ids[i]:self.im_ids[i] for i in range(len(self.q_ids))}
         self.im_id_to_ans = {self.im_ids[i]:self.ans[i] for i in range(len(self.im_ids))}
 
-    def predict(self, test_q_arr, test_q_ids):
+    def predict(self, test_q_arr, test_q_ids, test_im_ids):
         """
         Returns list of answers corresponding to full prediction pipeline output on list of test image question/question ids.
         """
@@ -61,14 +71,23 @@ class KNNModel():
             except:
                 print("Not trained/no embeddings index matrix.")
         
+        if self.verbose:
+            print("Starting predictions...")
+
         preds = []
-        for q_embed in test_q_embed:
+        for ind in range(len(test_q_embed)):
             closest_q_inds = self.knn_qs.kneighbors(test_q_embed)
             knearest_im_ids = [self.q_id_to_im_id[self.q_ids[q]] for q in closest_q_inds[1][0]]
-            closest_im_id = self.get_closest_image(self.q_id_to_im_id[q_id_arr[-1]], knearest_im_ids)
+            closest_im_id = self.get_closest_image(test_im_ids[ind], knearest_im_ids)
             counts = Counter(self.im_id_to_ans[closest_im_id])
             pred = [p[0] for p in counts.most_common(self.output_n)]
             preds.append(pred)
+            if self.verbose and ind % self.pred_verb_num == 0:
+                print("At prediction iteration: %d"%ind)
+
+        if self.verbose:
+            print("Finished predictions.")
+
         return preds
 
     def get_embedding(self, img_path):
@@ -122,40 +141,6 @@ class KNNModel():
         i = cos_sims.index(max(cos_sims))
         
         return img_id_list[i]
-
-data_arr = get_by_ques_type(["how many"])
-
-q_arr = [format_q_for_embed(val['question']) for val in data_arr]
-q_id_arr = [val['question_id'] for val in data_arr]
-q_id_to_q = dict(zip(q_id_arr, q_arr))
-im_id_arr = [val['image_id'] for val in data_arr]
-
-q_id_to_im_id = {val['question_id']:val['image_id'] for val in data_arr}
-im_id_to_q_id = {val['image_id']:val['question_id'] for val in data_arr}
-
-test_q_id, test_q = q_id_arr[-1], q_arr[-1]
-
-ans_arr = [val['answers'] for val in data_arr]
-
-model = KNNModel(5)
-model.train(q_arr, q_id_arr, im_id_arr, ans_arr)
-preds = model.predict([test_q], [test_q_id])
-
-print(preds)
-
-# print(q_id_to_q[test_q_id])
-# impath = img_id_to_path(q_id_to_im_id[test_q_id])
-# I = io.imread(impath)
-# plt.imshow(I)
-# plt.show()
-
-# print(closest)
-
-# print(q_id_to_q[im_id_to_q_id[closest]])
-# closest_path = img_id_to_path(closest)
-# I = io.imread(closest_path)
-# plt.imshow(I)
-# plt.show()
 
 
 
