@@ -68,10 +68,10 @@ class RNNModel():
 	symbols_out_onehot = np.zeros([vocab_size], dtype=float)
 	symbols_out_onehot[dictionary[str(training_data[offset+num_input])]] = 1.0
 
-	# _, acc, loss, onehot_pred = session.run([optimizer, accuracy, cost, pred], feed_dict={x: symbols_in_keys, y: symbols_out_onehot})
-
 	pred = RNN(x, weights, biases)
 
 	# Loss and optimizer
 	cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=symbols_out_onehot))
 	optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate).minimize(cost)
+
+	_, acc, loss, onehot_pred = session.run([optimizer, accuracy, cost, pred], feed_dict={x: symbols_in_keys, y: symbols_out_onehot})
