@@ -1,4 +1,5 @@
 import tensorflow as tf
+from tensorflow.contrib import rnn
 import pandas as pd
 import numpy as np
 import collections
@@ -6,21 +7,13 @@ import collections
 
 class RNNModel():
 
-	def __init__ RNNModel(self, n_hidden=512, n_input=3, training_file): 
+	def __init__ RNNModel(self, n_hidden=512, n_input=3, question): 
 
 		# Network Parameters
 		self.n_input = n_input
 		self.n_hidden = n_hidden # hidden layer num of features
 
-		def read_data(fname):
-		    with open(fname) as f:
-		        content = f.readlines()
-		    content = [x.strip() for x in content]
-		    content = [word for i in range(len(content)) for word in content[i].split()]
-		    content = np.array(content)
-		    return content
-
-		training_data = read_data(training_file)
+		question_list = question.split()
 
 		def build_dataset(words):
 		    count = collections.Counter(words).most_common()
@@ -30,7 +23,7 @@ class RNNModel():
 		    reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
 		    return dictionary, reverse_dictionary
 
-		dictionary, reverse_dictionary = build_dataset(training_data)
+		dictionary, reverse_dictionary = build_dataset(question_list)
 		vocab_size = len(dictionary)
 
 		self.weights = {
@@ -46,15 +39,15 @@ class RNNModel():
 
 	def RNN(self, x):
 	    # reshape to [1, n_input]
-	    x = tf.reshape(x, [-1, n_input])
+	    x = tf.reshape(x, [-1, self.n_input])
 
 	    # Generate a n_input-element sequence of inputs
 	    # (eg. [had] [a] [general] -> [20] [6] [33])
-	    x = tf.split(x,n_input,1)
+	    x = tf.split(x,self.n_input,1)
 
 	    # 2-layer LSTM, each layer has n_hidden units.
 	    # Average Accuracy= 95.20% at 50k iter
-	    rnn_cell = rnn.MultiRNNCell([rnn.BasicLSTMCell(n_hidden),rnn.BasicLSTMCell(n_hidden)])
+	    rnn_cell = rnn.MultiRNNCell([rnn.BasicLSTMCell(self.n_hidden),rnn.BasicLSTMCell(self.n_hidden)])
 
 	    # 1-layer LSTM with n_hidden units but with lower accuracy.
 	    # Average Accuracy= 90.60% 50k iter
@@ -66,5 +59,5 @@ class RNNModel():
 
 	    # there are n_input outputs but
 	    # we only want the last output
-	    return tf.matmul(outputs[-1], weights['out']) + biases['out']
+	    return tf.matmul(outputs[-1], self.weights['out']) + self.biases['out']
 	
