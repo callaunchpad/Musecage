@@ -39,11 +39,11 @@ class RNNModel():
 
 	def RNN(self, x):
 	    # reshape to [1, n_input]
-	    x = tf.reshape(x, [-1, self.n_input])
+	    #x = tf.reshape(x, [-1, self.n_input])
 
 	    # Generate a n_input-element sequence of inputs
 	    # (eg. [had] [a] [general] -> [20] [6] [33])
-	    x = tf.split(x,self.n_input,1)
+	    #x = tf.split(x,self.n_input,1)
 
 	    # 2-layer LSTM, each layer has n_hidden units.
 	    # Average Accuracy= 95.20% at 50k iter
