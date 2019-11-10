@@ -62,18 +62,20 @@ def embed_question(q_arr, embed_index, dim, discard=False):
     q_embeds=[]
     for i in range(len(q_arr)): #For each question
         q_embed=np.zeros((dim))
-        q = q_arr[i][0]
+        q = q_arr[i]
         if discard:
             words_exist = True
-        for word in q.split(): #For each word in each question
+        for word in q.split(" "): #For each word in each question
             try: #If the word embedding is found
                 word_embedding = embed_index[word]
                 q_embed = np.add(q_embed, word_embedding)
+                c += 1
             except:
                 if discard:
                     words_exist = False
                     break
                 continue
+        print(q)
         if not discard or discard and words_exist:
             q_embeds.append(q_embed)
         else:
