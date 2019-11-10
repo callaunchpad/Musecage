@@ -7,7 +7,7 @@ import collections
 
 class RNNModel():
 
-	def __init__ RNNModel(self, n_hidden=512, n_input=3, question): 
+	def __init__ (self, question, n_hidden=512, n_input=3): 
 
 		# Network Parameters
 		self.n_input = n_input
