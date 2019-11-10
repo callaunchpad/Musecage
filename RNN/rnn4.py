@@ -34,7 +34,7 @@ class RNNModel():
 		}
 
 		# tf Graph input
-		self.X = tf.placeholder(dtype=tf.float32, shape=[None, self.n_input], name="X")
+		self.X = tf.placeholder(dtype=tf.float32, shape=[None, self.n_input, 1], name="X")
 		self.Y = tf.placeholder(dtype=tf.float32, shape=[None, vocab_size], name="Y")
 
 	def RNN(self, x):
