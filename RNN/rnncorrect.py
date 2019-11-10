@@ -78,11 +78,11 @@ biases = {
 def RNN(x, weights, biases):
 
     # reshape to [1, n_input]
-    x = tf.reshape(x, [-1, n_input])
+   # x = tf.reshape(x, [-1, n_input])
 
     # Generate a n_input-element sequence of inputs
     # (eg. [had] [a] [general] -> [20] [6] [33])
-    x = tf.split(x,n_input,1)
+   # x = tf.split(x,n_input,1)
 
     # 2-layer LSTM, each layer has n_hidden units.
     # Average Accuracy= 95.20% at 50k iter
@@ -94,7 +94,7 @@ def RNN(x, weights, biases):
     # rnn_cell = rnn.BasicLSTMCell(n_hidden)
 
     # generate prediction
-    outputs, states = rnn.static_rnn(rnn_cell, x, dtype=tf.float32)
+    outputs, states = tf.nn.dynamic_rnn(rnn_cell, x, dtype=tf.float32)
 
     # there are n_input outputs but
     # we only want the last output
@@ -122,7 +122,7 @@ with tf.Session() as session:
     acc_total = 0
     loss_total = 0
 
-    writer.add_graph(session.graph)
+    #writer.add_graph(session.graph)
 
     while step < training_iters:
         # Generate a minibatch. Add some randomness on selection process.
@@ -148,7 +148,8 @@ with tf.Session() as session:
             loss_total = 0
             symbols_in = [training_data[i] for i in range(offset, offset + n_input)]
             symbols_out = training_data[offset + n_input]
-            symbols_out_pred = reverse_dictionary[int(tf.argmax(onehot_pred, 1).eval())]
+            # print(onehot_pred)
+            symbols_out_pred = reverse_dictionary[int(tf.argmax(onehot_pred, 1).eval()[0])]
             print("%s - [%s] vs [%s]" % (symbols_in,symbols_out,symbols_out_pred))
         step += 1
         offset += (n_input+1)

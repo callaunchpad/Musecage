@@ -16,12 +16,12 @@ class RNNModel():
 		question_list = question.split()
 
 		def build_dataset(words):
-		    count = collections.Counter(words).most_common()
-		    dictionary = dict()
-		    for word, _ in count:
-		        dictionary[word] = len(dictionary)
-		    reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
-		    return dictionary, reverse_dictionary
+			count = collections.Counter(words).most_common()
+			dictionary = dict()
+			for word, _ in count:
+				dictionary[word] = len(dictionary)
+			reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
+			return dictionary, reverse_dictionary
 
 		dictionary, reverse_dictionary = build_dataset(question_list)
 		vocab_size = len(dictionary)
