@@ -55,7 +55,7 @@ class RNNModel():
 	    # rnn_cell = rnn.BasicLSTMCell(n_hidden)
 
 	    # generate prediction
-	    outputs, states = rnn.static_rnn(rnn_cell, x, dtype=tf.float32)
+	    outputs, states = tf.nn.dynamic_rnn(rnn_cell, x, dtype=tf.float32)
 
 	    # there are n_input outputs but
 	    # we only want the last output
