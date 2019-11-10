@@ -39,7 +39,7 @@ class RNNModel():
 
 	def RNN(self, x):
 	    # reshape to [1, n_input]
-	    x = tf.reshape(self.X, [-1, self.n_input])
+	    x = tf.reshape(x, [-1, self.n_input])
 
 	    # Generate a n_input-element sequence of inputs
 	    # (eg. [had] [a] [general] -> [20] [6] [33])
