@@ -34,12 +34,12 @@ class RNNModel():
 		}
 
 		# tf Graph input
-		X = tf.placeholder("float", [None, n_input], 1)
-		Y = tf.placeholder("float", [None, vocab_size])
+		self.X = tf.placeholder(dtype=tf.float32, shape=[None, self.n_input], name="X")
+		self.Y = tf.placeholder(dtype=tf.float32, shape=[None, vocab_size], name="Y")
 
 	def RNN(self, x):
 	    # reshape to [1, n_input]
-	    x = tf.reshape(x, [-1, self.n_input])
+	    x = tf.reshape(self.X, [-1, self.n_input])
 
 	    # Generate a n_input-element sequence of inputs
 	    # (eg. [had] [a] [general] -> [20] [6] [33])
@@ -60,4 +60,5 @@ class RNNModel():
 	    # there are n_input outputs but
 	    # we only want the last output
 	    return tf.matmul(outputs[-1], self.weights['out']) + self.biases['out']
+	
 	
