@@ -21,15 +21,15 @@ class FCNN:
 		self.cnn_in, self.rnn_in, self.y, self.output, self.loss, self.train_op = self._build_model()
 
 	def train(self, sess, batched_cnn_inputs, batched_rnn_inputs, batched_outputs, 
-			        save_model_loc="", checkpoint_freq=100, epochs=100000, verbose=True):
+			        save_model_loc="", checkpoint_freq=100, epochs=10000, verbose=True):
 
 		num_batches = len(batched_outputs)
 
 		for epoch in range(epochs):
 			# get random batch
-			i = random.randint(0, num_batches)
+			i = random.randint(0, num_batches-1)
 			cnn_batch, rnn_batch, y_batch = batched_cnn_inputs[i], batched_rnn_inputs[i], batched_outputs[i]
-			step_loss = self._train_step(cnn_batch, rnn_batch, y_batch)
+			step_loss = self._train_step(sess, cnn_batch, rnn_batch, y_batch)
 			if verbose:
 				if epoch % checkpoint_freq:
 					print("Epoch: ", epoch, "Loss:", step_loss)
@@ -39,14 +39,14 @@ class FCNN:
 						self._save_model(save_model_loc)
 
 
-	def predict(self, cnn_in, rnn_in):
-		return self.sess.run(self.output, feed_dict={self.cnn_in: cnn_in, self.rnn_in: rnn_in})
+	def predict(self, sess, cnn_in, rnn_in):
+		return sess.run(self.output, feed_dict={self.cnn_in: cnn_in, self.rnn_in: rnn_in})
 
 	# TODO: implement
 	# def _save_model(self, loc):
 
 
-	def _train_step(self, cnn_batch, rnn_batch, y_batch):
+	def _train_step(self, sess, cnn_batch, rnn_batch, y_batch):
 		_, step_loss = sess.run([self.train_op, self.loss], feed_dict={self.cnn_in: cnn_batch, self.rnn_in: rnn_batch, self.y: y_batch})
 		return step_loss
 	
