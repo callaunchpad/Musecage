@@ -14,6 +14,7 @@ class Pipeline():
         self.metric = metric
         self.batch_size = batch_size
         self.replace = replace
+        self.curr_index = 0
         
     def create_split(self, split_val=.8, custom_split=False, custom_train=[], custom_test=[], build_top_vocab=True, top_k=1000):
         if custom_split:
@@ -46,10 +47,17 @@ class Pipeline():
         self.test_ans_arr = [val["answers"] for val in self.test_data]
 
     def next_train_batch(self):
-        train_q_batch = np.random.choice(self.train_q_arr, self.batch_size, self.replace)
-        train_q_id_batch = np.random.choice(self.train_q_id_arr, self.batch_size, self.replace)
-        train_im_id_batch = np.random.choice(self.train_im_id_arr, self.batch_size, self.replace)
-        train_ans_batch = np.random.choice(self.train_ans_arr, self.batch_size, self.replace)
+        if not self.replace:
+            train_q_batch = self.train_q_arr[self.curr_index : self.curr_index + self.batch_size]
+            train_q_id_batch = self.train_q_id_arr[self.curr_index : self.curr_index + self.batch_size]
+            train_im_id_batch = self.train_im_id_arr[self.curr_index : self.curr_index + self.batch_size]
+            train_ans_batch = self.train_ans_arr[self.curr_index : self.curr_index + self.batch_size]
+            self.curr_index += self.batch_size
+        else:
+            train_q_batch = np.random.choice(self.train_q_arr, self.batch_size, self.replace)
+            train_q_id_batch = np.random.choice(self.train_q_id_arr, self.batch_size, self.replace)
+            train_im_id_batch = np.random.choice(self.train_im_id_arr, self.batch_size, self.replace)
+            train_ans_batch = np.random.choice(self.train_ans_arr, self.batch_size, self.replace)
         return train_q_batch, train_q_id_batch, train_im_id_batch, train_ans_batch
 
     def get_preds(self, model_class=KNNModel, k=4):
