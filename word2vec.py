@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from load_create_data import *
 
 class Word2Vec():
-	def __init__(self, questions, indices, input_dim, output_dim=1000, hidden_layer_units, activation='softmax', loss, name="word2vec_net"):
+	def __init__(self, questions, indices, hidden_layer_units, loss, input_dim, output_dim=1000, activation='softmax', name="word2vec_net"):
 		"""
 		Args:
 			input_dim (int): Dimensionality of input (not including batch)
@@ -23,30 +23,30 @@ class Word2Vec():
 			name (str): Name of neural net.
 		"""
 
-        self.input_dim = input_dim
+		self.input_dim = input_dim
 		self.output_dim = output_dim
-        # only using one hidden layer
-        self.hidden_layer_units = hidden_layer_units
-       
-	    self.input = tf.placeholder(dtype=tf.float64, 
+		# only using one hidden layer
+		self.hidden_layer_units = hidden_layer_units
+		
+		self.input = tf.placeholder(dtype=tf.float64, 
 										shape=(None, input_dim),
 										name="input")
-        self.labels = tf.placeholder(dtype=tf.float64, 
+		self.labels = tf.placeholder(dtype=tf.float64, 
 										shape=(None, output_dim),
 										name="labels")
-        
-        self.weights = tf.Variable(np.random.normal(size=(hidden_layer_units, output_dim)), dtype=tf.float64)
-        self.biases = tf.Variable(tf.zeros([vocabulary_size]))
+		
+		self.weights = tf.Variable(np.random.normal(size=(hidden_layer_units, output_dim)), dtype=tf.float64)
+		self.biases = tf.Variable(tf.zeros([vocabulary_size]))
 
-        self.hidden_layer = activation(tf.matmul(self.input, self.weights)) + self.biases
-        
+		self.hidden_layer = activation(tf.matmul(self.input, self.weights)) + self.biases
+		
 		self.one_hot = tf.one_hot(indices, self.input_dim)
-        self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=self.output, 
-            labels=self.one_hot))
+		self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=self.output, 
+			labels=self.one_hot))
 
-        self.optimizer = tf.train.AdamOptimizer(1e-4)
-        self.train_op = self.optimizer.minimize(self.loss)
-'''
+		self.optimizer = tf.train.AdamOptimizer(1e-4)
+		self.train_op = self.optimizer.minimize(self.loss)
+		'''
 		assert len(hidden_layer_units) == len(activations)
 		with tf.name_scope(name):
 			self.input_dim = input_dim
@@ -81,7 +81,7 @@ class Word2Vec():
 			self.train_op = self.optimizer.minimize(self.loss)
 
 		return
-'''
+		'''
 
 	def train_step(self, features, labels, sess):
 		loss, accuracy, _ = sess.run([self.loss, self.accuracy, self.train_op], 

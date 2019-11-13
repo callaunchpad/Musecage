@@ -6,6 +6,7 @@ import numpy as np
 
 from load_create_data import *
 from knn import KNNModel
+from word2vec import Word2Vec
 from collections import Counter
 
 class Pipeline():
@@ -36,6 +37,7 @@ class Pipeline():
             self.top_k_dict = {}
             for ind in range(len(top_k_words)):
                 self.top_k_dict[top_k_words[ind][0]] = ind
+            self.top_k_dict["__END__"] = len(top_k_words)
 
         self.train_q_id_arr = [val["question_id"] for val in self.train_data]
         self.test_q_id_arr = [val["question_id"] for val in self.test_data]
@@ -48,17 +50,35 @@ class Pipeline():
 
     def next_train_batch(self):
         if not self.replace:
-            train_q_batch = self.train_q_arr[self.curr_index : self.curr_index + self.batch_size]
-            train_q_id_batch = self.train_q_id_arr[self.curr_index : self.curr_index + self.batch_size]
-            train_im_id_batch = self.train_im_id_arr[self.curr_index : self.curr_index + self.batch_size]
-            train_ans_batch = self.train_ans_arr[self.curr_index : self.curr_index + self.batch_size]
+            self.train_q_batch = self.train_q_arr[self.curr_index : self.curr_index + self.batch_size]
+            self.train_q_id_batch = self.train_q_id_arr[self.curr_index : self.curr_index + self.batch_size]
+            self.train_im_id_batch = self.train_im_id_arr[self.curr_index : self.curr_index + self.batch_size]
+            self.train_ans_batch = self.train_ans_arr[self.curr_index : self.curr_index + self.batch_size]
             self.curr_index += self.batch_size
         else:
-            train_q_batch = np.random.choice(self.train_q_arr, self.batch_size, self.replace)
-            train_q_id_batch = np.random.choice(self.train_q_id_arr, self.batch_size, self.replace)
-            train_im_id_batch = np.random.choice(self.train_im_id_arr, self.batch_size, self.replace)
-            train_ans_batch = np.random.choice(self.train_ans_arr, self.batch_size, self.replace)
-        return train_q_batch, train_q_id_batch, train_im_id_batch, train_ans_batch
+            self.train_q_batch = np.random.choice(self.train_q_arr, self.batch_size, self.replace)
+            self.train_q_id_batch = np.random.choice(self.train_q_id_arr, self.batch_size, self.replace)
+            self.train_im_id_batch = np.random.choice(self.train_im_id_arr, self.batch_size, self.replace)
+            self.train_ans_batch = np.random.choice(self.train_ans_arr, self.batch_size, self.replace)
+        return self.train_q_batch, self.train_q_id_batch, self.train_im_id_batch, self.train_ans_batch
+
+    def batch_word2vec(self, discard=True):
+        """
+        if discard is True, throw away questions in which all words are not in top_k_dict (51474 out of 60k questions have all words within top 1k)
+        """
+        inp_inds = []
+        out_inds = []
+        for q in self.train_q_batch:
+            words = q.split(" ")
+            curr_inds = []
+            for word in words:
+                if word in self.top_k_dict:
+                    curr_inds.append(self.top_k_dict[word])
+                else:
+                    break
+            inp_inds.extend(curr_inds)
+            out_inds.extend((curr_inds[1:] + [self.top_k_dict["__END__"]]))
+        return inp_inds, out_inds
 
     def get_preds(self, model_class=KNNModel, k=4):
         model = model_class(k)
@@ -77,5 +97,9 @@ class Pipeline():
         return acc
 
 data_arr = get_by_ques_type([])
+p = Pipeline(data_arr)
+p.create_split()
+
+# w2v = Word2Vec()
 
 

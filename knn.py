@@ -76,10 +76,6 @@ class KNNModel():
 
         preds = []
         for ind in range(len(test_q_embed)):
-<<<<<<< HEAD
-            q_embed = test_q_embed[ind]
-=======
->>>>>>> pipeline
             closest_q_inds = self.knn_qs.kneighbors(test_q_embed)
             knearest_im_ids = [self.q_id_to_im_id[self.q_ids[q]] for q in closest_q_inds[1][0]]
             closest_im_id = self.get_closest_image(test_im_ids[ind], knearest_im_ids)
