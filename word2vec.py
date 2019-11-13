@@ -8,62 +8,83 @@ import matplotlib.pyplot as plt
 from load_create_data import *
 
 class Word2Vec():
-	def __init__(self, questions, indices, input_dim, output_dim=1000, hidden_layer_units, activation='softmax', loss, name="word2vec_net"):
+	def __init__(self, indices, vocab_size, output_dim=1000, embedding_size, activation='softmax', loss, name="word2vec_net"):
 		"""
 		Args:
-			input_dim (int): Dimensionality of input (not including batch)
-			output_dim (int): Dimensionality of input (not including batch)
-			hidden_layer_units (array of ints): Array number of units for each
-					hidden layer. 
-					Length of the array is the number of hidden layers.
-					0th index comes first after input tensor
-			activations (array): List of tf activation functions.
-					Must be the same length as hidden_layer_units
+			indices (arr): indices for tf one hot encoder
+			vocab_size (int): Dimensionality of input (not including batch)
+			output_dim (int): Dimensionality of output (not including batch)
+			embedding_size (int): Number of units for the hidden layer. 
+			activation (func): activation function
 			loss function (tf fnctn): Loss function (after linear output)
 			name (str): Name of neural net.
 		"""
 
-        self.input_dim = input_dim
+		self.vocab_size = vocab_size
 		self.output_dim = output_dim
+		self.indices = indices
+		
         # only using one hidden layer
-        self.hidden_layer_units = hidden_layer_units
+        self.embedding_size = embedding_size
        
 	    self.input = tf.placeholder(dtype=tf.float64, 
-										shape=(None, input_dim),
+										shape=(None, vocab_size),
 										name="input")
         self.labels = tf.placeholder(dtype=tf.float64, 
 										shape=(None, output_dim),
 										name="labels")
         
-        self.weights = tf.Variable(np.random.normal(size=(hidden_layer_units, output_dim)), dtype=tf.float64)
-        self.biases = tf.Variable(tf.zeros([vocabulary_size]))
+		# begin building network
+		self.embeddings = tf.Variable(np.random.normal(size=(self.vocab_size, self.embedding_size)), 
+														dtype=tf.float64)
+		self.input = tf.nn.embedding_lookup(self.embeddings, self.input)
+
+		self.weights = tf.Variable(np.random.normal(size=(self.vocab_size, self.embedding_size)), dtype=tf.float64)
+		self.biases = tf.Variable(tf.zeros([self.vocab_size]))
 
         self.hidden_layer = activation(tf.matmul(self.input, self.weights)) + self.biases
         
-		self.one_hot = tf.one_hot(indices, self.input_dim)
-        self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=self.output, 
+		self.one_hot = tf.one_hot(indices, self.vocab_size)
+        self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=self.hidden_layer, 
             labels=self.one_hot))
 
         self.optimizer = tf.train.AdamOptimizer(1e-4)
         self.train_op = self.optimizer.minimize(self.loss)
 '''
-		assert len(hidden_layer_units) == len(activations)
+		batch_size = 128
+		embedding_size = 128  # Dimension of the embedding vector.
+
+		embeddings = tf.Variable(
+			tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0))
+		embed = tf.nn.embedding_lookup(embeddings, train_inputs)
+		
+		weights = tf.Variable(tf.truncated_normal([vocabulary_size, embedding_size],
+                          stddev=1.0 / math.sqrt(embedding_size)))
+		biases = tf.Variable(tf.zeros([vocabulary_size]))
+		hidden_out = tf.matmul(embed, tf.transpose(weights)) + biases
+
+		train_one_hot = tf.one_hot(train_context, vocabulary_size)
+		cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=hidden_out, 
+			labels=train_one_hot))
+		optimizer = tf.train.GradientDescentOptimizer(1.0).minimize(cross_entropy)
+
+		assert len(embedding_size) == len(activations)
 		with tf.name_scope(name):
-			self.input_dim = input_dim
+			self.vocab_size = vocab_size
 			self.output_dim = output_dim
 			self.weights = []
 			self.biases = []
 
 			self.input = tf.placeholder(dtype=tf.float64, 
-										shape=(None, input_dim),
+										shape=(None, vocab_size),
 										name="input")
 			self.labels = tf.placeholder(dtype=tf.float64, 
 										shape=(None, output_dim),
 										name="labels")
 			self.neurons = [self.input]
 			cur_layer = self.input
-			prev_units = input_dim
-			for num_units, activation in zip(hidden_layer_units, activations):
+			prev_units = vocab_size
+			for num_units, activation in zip(embedding_size, activations):
 				cur_W = tf.Variable(np.random.normal(size=(prev_units, num_units)), dtype=tf.float64)
 				cur_b = tf.Variable(np.random.normal(num_units), dtype=tf.float64)
 				cur_layer = activation(tf.matmul(cur_layer, cur_W)) + cur_b
@@ -71,7 +92,7 @@ class Word2Vec():
 				self.biases.append(cur_b)
 				self.neurons.append(cur_layer)
 				prev_units = num_units
-			cur_W = tf.Variable(np.random.normal(size=(hidden_layer_units[-1], output_dim)), 
+			cur_W = tf.Variable(np.random.normal(size=(embedding_size[-1], output_dim)), 
 								dtype=tf.float64)
 			self.output = tf.matmul(cur_layer, cur_W)
 			self.weights.append(cur_W)
@@ -82,7 +103,6 @@ class Word2Vec():
 
 		return
 '''
-
 	def train_step(self, features, labels, sess):
 		loss, accuracy, _ = sess.run([self.loss, self.accuracy, self.train_op], 
 											  feed_dict={self.input: features, self.labels: labels.astype(np.float64)})
