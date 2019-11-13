@@ -6,6 +6,7 @@ import numpy as np
 
 from load_create_data import *
 from knn import KNNModel
+from collections import Counter
 
 class Pipeline():
     def __init__(self, data_arr, metric="min_k", batch_size=64, replace=False):
@@ -14,7 +15,7 @@ class Pipeline():
         self.batch_size = batch_size
         self.replace = replace
         
-    def create_split(self, split_val=.8, custom_split=False, custom_train=[], custom_test=[]):
+    def create_split(self, split_val=.8, custom_split=False, custom_train=[], custom_test=[], build_top_vocab=True, top_k=1000):
         if custom_split:
             self.train_data = custom_train
             self.test_data = custom_test
@@ -24,6 +25,16 @@ class Pipeline():
 
         self.train_q_arr = [format_q_for_embed(val["question"]) for val in self.train_data]
         self.test_q_arr = [format_q_for_embed(val["question"]) for val in self.test_data]
+
+        if build_top_vocab:
+            allwords = []
+            for q in self.train_q_arr + self.test_q_arr:
+                allwords.extend(q.split(" "))
+            c = Counter(allwords)
+            top_k_words = c.most_common(top_k)
+            self.top_k_dict = {}
+            for ind in range(len(top_k_words)):
+                self.top_k_dict[top_k_words[ind][0]] = ind
 
         self.train_q_id_arr = [val["question_id"] for val in self.train_data]
         self.test_q_id_arr = [val["question_id"] for val in self.test_data]
@@ -57,24 +68,6 @@ class Pipeline():
         acc /= len(self.preds)
         return acc
 
-data_arr = get_by_ques_type(["what is the man"])
-print(len(data_arr))
-p = Pipeline(data_arr)
-p.create_split()
-p.get_preds()
-acc = p.get_accuracy()
-print(acc)
-
-        
-                
-        
-
-            
-
-
-
-
-
-
+data_arr = get_by_ques_type([])
 
 
