@@ -5,16 +5,18 @@ import numpy as np
 
 class RNNModel():
 
-	def __init__ (self, question_embedding, n_hidden=512): 
+	def __init__ (self, embedding_len = 1024, n_hidden=512): 
 		"""
-		params: question_embedding is a matrix with shape (num_words, embedding_len)
+		params: 
+		depth: number of words in all the questions...ever
+		indicies: an array of indices of each word in the question
 		"""
 		# Network Parameters
-		self.n_hidden = n_hidden # hidden layer num of features
-		num_words, embedding_len = question_embedding.shape
+		# num_words = len(indices)
+		# question_embedding = tf.one_hot(indices, depth)
 		# tf Graph input
-		self.x = tf.placeholder(dtype=tf.float32, shape=[None, num_words, embedding_len], name="inputs")
-		self.outputs, self.states = self._build_graph()
+		self.x = tf.placeholder(dtype=tf.float32, shape=[None, 1, embedding_len], name="inputs")
+		self.output = self._build_graph()
 
 	def _build_graph(self):
 		rnn_cell = rnn.MultiRNNCell([rnn.BasicLSTMCell(self.n_hidden),rnn.BasicLSTMCell(self.n_hidden)])
@@ -22,7 +24,10 @@ class RNNModel():
 
 		print("Output shape:", tf.shape(outputs))
 		print("States shape:", tf.shape(states))
-		return outputs, states
+
+		output = tf.concat([outputs, states], axis=0)
+
+		return output
 
 pred=RNNModel(np.random.rand(10,1024))
 	

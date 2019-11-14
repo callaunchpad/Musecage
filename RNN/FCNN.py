@@ -53,9 +53,11 @@ class FCNN:
 	def _build_model(self):
 
 		with tf.variable_scope(self.scope):
-
+			rnn = RNNModel(np.random.rand(10,self.rnn_input_size))
+			rnn_output = rnn.output
+			# cnn_in = VGG16(include_top=True, weights="imagenet", input_tensor=None, input_shape=None, pooling=None, classes=self.cnn_input_size)
 			cnn_in = tf.placeholder(tf.float32, [None, self.cnn_input_size], name="cnn_input")
-			rnn_in = tf.placeholder(tf.float32, [None, self.rnn_input_size], name="rnn_input")
+			# rnn_in = tf.placeholder(tf.float32, [None, self.rnn_input_size], name="rnn_input")
 			y = tf.placeholder(tf.float32, [None, self.output_size], name="y")
 
 			cnn_dense = tf.layers.dense(cnn_in, self.pointwise_layer_size, activation=self.activation_fn, kernel_initializer=self.initializer, name='cnn_in_layer')
