@@ -2,7 +2,6 @@ import tensorflow as tf
 from tensorflow.contrib import rnn
 import numpy as np
 
-
 class RNNModel():
 
 	def __init__ (self, batched_rnn_input, n_hidden=512): 
@@ -18,15 +17,10 @@ class RNNModel():
 
 	def _build_graph(self):
 		rnn_cell = rnn.MultiRNNCell([rnn.BasicLSTMCell(self.n_hidden),rnn.BasicLSTMCell(self.n_hidden)])
-		outputs, states = tf.nn.dynamic_rnn(rnn_cell, self.batched_rnn_input, dtype=tf.float32)
+		outputs, states = tf.nn.dynamic_rnn(rnn_cell, self.batched_rnn_input, dtype=tf.float64)
 
-		print("Output shape:", tf.shape(outputs))
-		print("States shape:", tf.shape(states))
+		out = tf.concat([states[0][0], states[0][1]], axis=0)
 
-		output = tf.concat([outputs, states], axis=0)
-
-		return output
-
-pred=RNNModel(np.random.rand(10,1024))
+		return out
 	
 	
