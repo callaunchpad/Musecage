@@ -1,6 +1,7 @@
 import tensorflow as tf 
 import numpy as np 
 import random
+from rnn4 import *
 
 class FCNN:
 	def __init__(self, cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, net_struct={'h1': 1000}, 
