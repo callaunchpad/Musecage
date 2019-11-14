@@ -126,7 +126,7 @@ class Pipeline():
 
 data_arr = get_by_ques_type([])
 vocab_size = 1000
-embed_size = 500
+embed_size = 300
 
 p = Pipeline(data_arr)
 w2v = Word2Vec(vocab_size + 1, embed_size)
