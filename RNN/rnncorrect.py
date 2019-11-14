@@ -8,6 +8,7 @@ Project: https://github.com/roatienza/Deep-Learning-Experiments
 
 from __future__ import print_function
 
+from rnn4 import *
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import rnn
@@ -101,6 +102,8 @@ def RNN(x, weights, biases):
     return tf.matmul(outputs[-1], weights['out']) + biases['out']
 
 pred = RNN(x, weights, biases)
+# rnn = RNNModel("did the mice fail the midterm")
+# pred = rnn.build_graph()
 
 # Loss and optimizer
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y))
