@@ -255,8 +255,17 @@ while p.next_batch(train=True, replace=False):
     sess = tf.Session()
     tf.global_variables_initializer().run(session=sess)
     if len(train_qs) > 0:
-        train_loss = fcnn._train_step(sess, np.array(train_ims), np.array(train_qs), np.array(train_ans))
+        train_loss, output, cnn, rnn = fcnn._train_step(sess, np.array(train_ims), np.array(train_qs), np.array(train_ans))
+        print("******************************************************************")
+        print("************************* TRAIN LOSS *************************")
         print(train_loss)
+        # print("************************* CNN LOSS *************************")
+        # print(cnn)
+        # print("************************* RNN LOSS *************************")
+        # print(rnn)
+        # print("************************* OUTPUT LOSS *************************")
+        # print(output)
+        print("******************************************************************")
         train_losses.append(train_loss)
         train_step += 1
         if train_step % 400 == 0:

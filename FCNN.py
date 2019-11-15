@@ -5,8 +5,8 @@ from rnn_model import RNNModel
 
 class FCNN:
 	def __init__(self, cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, net_struct={'h1': 1000}, 
-			           initializer=tf.random_normal_initializer, activation_fn=tf.tanh, 
-			           loss_fn=tf.nn.sparse_softmax_cross_entropy_with_logits, lr=1e-4):
+			           initializer=tf.random_normal_initializer, activation_fn=tf.nn.relu, 
+			           loss_fn=tf.nn.sparse_softmax_cross_entropy_with_logits, lr=1e-2):
 
 		self.cnn_input_size = cnn_input_size
 		self.rnn_input_size = rnn_input_size
@@ -49,31 +49,31 @@ class FCNN:
 
 
 	def _train_step(self, sess, cnn_batch, rnn_batch, label_batch):
-		_, step_loss = sess.run([self.train_op, self.loss], feed_dict={self.cnn_in: cnn_batch, self.rnn_in: rnn_batch, self.labels: label_batch})
-		return step_loss
+		_, step_loss, output, cnn_dense, rnn_dense = sess.run([self.train_op, self.loss, self.output, self.cnn_dense, self.rnn_dense], feed_dict={self.cnn_in: cnn_batch, self.rnn_in: rnn_batch, self.labels: label_batch})
+		return step_loss, output, cnn_dense, rnn_dense
 	
 	def _build_model(self):
 		self.cnn_in = tf.placeholder(tf.float64, [None, self.cnn_input_size], name="cnn_input")
 		self.rnn_in = tf.placeholder(tf.int32, [None, None], name="rnn_input")
 		self.labels = tf.placeholder(tf.int32, [None], name="labels")
 
-		one_hot = tf.one_hot(self.rnn_in, self.vocab_size, dtype=tf.float64)
+		self.one_hot = tf.one_hot(self.rnn_in, self.vocab_size, dtype=tf.float64)
 
-		rnn = RNNModel(one_hot)
-		rnn_output = rnn.output
+		rnn = RNNModel(self.one_hot)
+		self.rnn_output = rnn.output
 
-		cnn_l2_reg = tf.nn.l2_normalize(tf.stop_gradient(self.cnn_in))
-		cnn_dense = tf.layers.dense(cnn_l2_reg, self.pointwise_layer_size, activation=self.activation_fn, name='cnn_in_layer')
-		rnn_dense = tf.layers.dense(rnn_output, self.pointwise_layer_size, activation=self.activation_fn, name='rnn_in_layer')
-		pointwise_layer = tf.multiply(cnn_dense, rnn_dense, name="pointwise_layer")
+		self.cnn_l2_reg = tf.nn.l2_normalize(tf.stop_gradient(self.cnn_in))
+		self.cnn_dense = tf.layers.dense(self.cnn_l2_reg, self.pointwise_layer_size, activation=self.activation_fn, name='cnn_in_layer')
+		self.rnn_dense = tf.layers.dense(self.rnn_output, self.pointwise_layer_size, activation=self.activation_fn, name='rnn_in_layer')
+		self.pointwise_layer = tf.multiply(self.cnn_dense, self.rnn_dense, name="pointwise_layer")
 
-		prev_layer = pointwise_layer
+		self.prev_layer = self.pointwise_layer
 		for layer_name, layer_nodes in self.net_struct.items():
-			prev_layer = tf.layers.dense(prev_layer, layer_nodes, 
+			prev_layer = tf.layers.dense(self.prev_layer, layer_nodes, 
 										activation=self.activation_fn, 
 										name=layer_name)
 
-		self.output = tf.layers.dense(prev_layer, self.output_size, 
+		self.output = tf.layers.dense(self.prev_layer, self.output_size, 
 										activation=self.activation_fn,
 										name="output")
 
