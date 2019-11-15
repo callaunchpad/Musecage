@@ -30,10 +30,6 @@ class Pipeline():
         self.embed_type = embed_type
         if self.embed_type == "GloVe":
             self.embed_index = load_glove()
-        self.sess = tf.Session()
-        self.graph = tf.get_default_graph()
-        set_session(self.sess)
-        self.vision_model = VGG16(include_top=True, weights="imagenet", input_tensor=None, input_shape=None, pooling=None, classes=1000)
         
         
     def create_split(self, split_val=.8, custom_split=False, custom_train=[], custom_test=[], build_top_vocab=True, top_k=1000):
@@ -164,21 +160,11 @@ class Pipeline():
                     curr_inds = embed_question([q], self.embed_index, 300)[0]
                     all_found = True
             
-                im_id = self.im_id_batch[ind]
-                img_path = img_id_to_path(im_id)
-                img = image.load_img(img_path, target_size=(224, 224))
-                x = image.img_to_array(img)
-                x = np.expand_dims(x, axis=0)
-                x = preprocess_input(x)
-                
-                with self.graph.as_default():
-                    set_session(self.sess)
-                    self.vision_model.predict(x)
-                    fc2_features_extractor_model = Model(inputs=self.vision_model.input, outputs=self.vision_model.get_layer('fc2').output)
-                    
-                    fc2_features = fc2_features_extractor_model.predict(x)
-                    fc2_features = fc2_features.reshape((4096,))
-                K.clear_session()
+                found_im = True
+                try:
+                    fc2_features = np.load("im_embed_data/"+str(self.im_id_batch[ind])+".npz")["arr_0"]
+                except:
+                    found_im = False    
 
                 ans = self.ans_batch[ind]
                 c = Counter(ans)
@@ -187,7 +173,7 @@ class Pipeline():
                 if most_common_ans not in self.top_k_ans_dict:
                     found_ans = False
 
-                if all_found and found_ans:
+                if all_found and found_ans and found_im:
                     if self.embed_type == "RNN":
                         inp_inds.append(np.array(curr_inds + [-1]*(max_len-len(curr_inds))))
                     elif self.embed_type == "GloVe":
@@ -225,7 +211,7 @@ pointwise_layer_size = 1024
 rnn_input_size = 1000
 cnn_input_size = 4096
 
-p = Pipeline(data_arr, embed_type="GloVe")
+p = Pipeline(data_arr, embed_type="RNN")
 w2v = Word2Vec(vocab_size + 1, embed_size)
 p.create_split()
 
@@ -264,12 +250,14 @@ test_losses = []
 
 saver = tf.train.Saver()
 
+fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, embed_type="RNN")
+
+sess = tf.Session()
+tf.global_variables_initializer().run(session=sess)
+
 while p.next_batch(train=True, replace=False):
     train_qs, train_ims, train_ans = p.batch_fcnn()
-    fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, embed_type="GloVe")
 
-    sess = tf.Session()
-    tf.global_variables_initializer().run(session=sess)
     if len(train_qs) > 0:
         train_loss, output, grads = fcnn._train_step(sess, np.array(train_ims), np.array(train_qs), np.array(train_ans))
         print("******************************************************************")
