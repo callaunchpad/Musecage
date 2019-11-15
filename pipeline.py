@@ -21,7 +21,7 @@ from rnn_model import RNNModel
 from FCNN import FCNN
 
 class Pipeline():
-    def __init__(self, data_arr, metric="min_k", batch_size=10):
+    def __init__(self, data_arr, metric="min_k", batch_size=1):
         self.data_arr = data_arr
         self.metric = metric
         self.batch_size = batch_size
@@ -175,8 +175,8 @@ class Pipeline():
                     found_ans = False
 
                 if all_found and found_ans:
-                    inp_inds.append(curr_inds)
-                    im_embeds.append(fc2_features)
+                    inp_inds.append(np.array(curr_inds))
+                    im_embeds.append(np.array(fc2_features))
                     ans_inds.append(self.top_k_ans_dict[most_common_ans])
         else:
             # to be implemented
@@ -246,21 +246,21 @@ test_losses = []
 # plt.plot(train_steps, test_losses)
 # plt.show()
 
+saver = tf.train.Saver()
+
 while p.next_batch(train=True, replace=False):
     train_qs, train_ims, train_ans = p.batch_fcnn()
-    print(train_qs)
-    print(train_ims)
-    print(train_ans)
     fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size)
 
     sess = tf.Session()
     tf.global_variables_initializer().run(session=sess)
-    train_loss = fcnn._train_step(sess, np.array(train_ims), np.array(train_qs), np.array(train_ans))
-    print(train_loss)
-
-    
-
-
-
-
+    if len(train_qs) > 0:
+        train_loss = fcnn._train_step(sess, np.array(train_ims), np.array(train_qs), np.array(train_ans))
+        print(train_loss)
+        train_losses.append(train_loss)
+        train_step += 1
+        if train_step % 400 == 0:
+            np.savez("losses%d.npz"%train_step, np.array(train_losses))
+            # save_path = saver.save(sess, "model%s.ckpt"%train_step)
+            tf.train.write_graph(sess.graph_def, '', 'train%s.pbtxt'%train_step)
 
