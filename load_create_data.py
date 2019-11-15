@@ -43,6 +43,17 @@ def get_by_ans_type(ansTypes):
         finals.append(final)
     return finals
 
+def get_by_img_ids(img_ids):
+    ans_ids = vqa.getQuesIds(imgIds=img_ids)
+    answers = vqa.loadQA(ans_ids)
+    finals = []
+    for an in answers:
+        qa = vqa.qqa[an["question_id"]]
+        final = qa.copy()
+        final["answers"] = [a["answer"] for a in an["answers"]]
+        finals.append(final)
+    return finals
+
 def load_glove():
     print("Indexing word vectors.")
     embed_index = {}
@@ -69,13 +80,12 @@ def embed_question(q_arr, embed_index, dim, discard=False):
             try: #If the word embedding is found
                 word_embedding = embed_index[word]
                 q_embed = np.add(q_embed, word_embedding)
-                c += 1
             except:
                 if discard:
                     words_exist = False
                     break
                 continue
-        print(q)
+        # print(q)
         if not discard or discard and words_exist:
             q_embeds.append(q_embed)
         else:
