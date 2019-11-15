@@ -38,24 +38,9 @@ class RNNModel():
 		self.Y = tf.placeholder(dtype=tf.float32, shape=[None, vocab_size], name="Y")
 
 	def RNN(self, x):
-	    # reshape to [1, n_input]
-	    #x = tf.reshape(x, [-1, self.n_input])
+		rnn_cell = rnn.MultiRNNCell([rnn.BasicLSTMCell(self.n_hidden),rnn.BasicLSTMCell(self.n_hidden)])
 
-	    # Generate a n_input-element sequence of inputs
-	    # (eg. [had] [a] [general] -> [20] [6] [33])
-	    #x = tf.split(x,self.n_input,1)
-
-	    # 2-layer LSTM, each layer has n_hidden units.
-	    # Average Accuracy= 95.20% at 50k iter
-	    rnn_cell = rnn.MultiRNNCell([rnn.BasicLSTMCell(self.n_hidden),rnn.BasicLSTMCell(self.n_hidden)])
-
-	    # 1-layer LSTM with n_hidden units but with lower accuracy.
-	    # Average Accuracy= 90.60% 50k iter
-	    # Uncomment line below to test but comment out the 2-layer rnn.MultiRNNCell above
-	    # rnn_cell = rnn.BasicLSTMCell(n_hidden)
-
-	    # generate prediction
-	    outputs, states = tf.nn.dynamic_rnn(rnn_cell, x, dtype=tf.float32)
+		outputs, states = tf.nn.dynamic_rnn(rnn_cell, x, dtype=tf.float32)
 
 	    # there are n_input outputs but
 	    # we only want the last output
