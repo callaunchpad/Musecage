@@ -72,11 +72,13 @@ class FCNN:
 		self.q_dense = tf.layers.dense(self.embed_output, self.pointwise_layer_size, activation=self.activation_fn, name='rnn_in_layer')
 		self.pointwise_layer = tf.multiply(self.cnn_dense, self.q_dense, name="pointwise_layer")
 
+		self.pointwise_layer = tf.nn.dropout(self.pointwise_layer, 0.2)
 		self.prev_layer = self.pointwise_layer
 		for layer_name, layer_nodes in self.net_struct.items():
-			prev_layer = tf.layers.dense(self.prev_layer, layer_nodes, 
+			self.prev_layer = tf.layers.dense(self.prev_layer, layer_nodes, 
 										activation=self.activation_fn, 
 										name=layer_name)
+			self.prev_layer = tf.nn.dropout(self.prev_layer, 0.2)
 
 		self.output = tf.layers.dense(self.prev_layer, self.output_size, 
 										activation=self.activation_fn,

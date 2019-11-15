@@ -245,17 +245,17 @@ while p.next_batch(train=True, replace=False):
         test_losses.append(test_loss)
  
     if train_step % 100 == 0:
-        tf.train.Saver().save(sess, "%s_model/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
-        np.savez("%s_model/train_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
-        np.savez("%s_model/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
+        tf.train.Saver().save(sess, "%s_model_2/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
+        np.savez("%s_model_2/train_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
+        np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
     train_step += 1
 
     end_time = time.time()
     print("time elapsed: ", end_time - start_time, " seconds")
 
-tf.train.Saver().save(sess, "%s_model/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
-np.savez("%s_model/losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
-np.savez("%s_model/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
+tf.train.Saver().save(sess, "%s_model_2/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
+np.savez("%s_model_2/losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
+np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
 
 
 # while p.next_batch(train=True, replace=False):
