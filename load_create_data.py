@@ -29,6 +29,7 @@ def get_by_ques_type(quesTypes):
         qa = vqa.qqa[an["question_id"]]
         final = qa.copy()
         final["answers"] = [a["answer"] for a in an["answers"]]
+        final["answer_type"] = an["answer_type"]
         finals.append(final)
     return finals
 

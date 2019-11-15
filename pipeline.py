@@ -64,6 +64,9 @@ class Pipeline():
         self.train_ans_arr = [val["answers"] for val in self.train_data]
         self.test_ans_arr = [val["answers"] for val in self.test_data]
 
+        self.train_ans_type = [val["answer_type"] for val in self.train_data]
+        self.test_ans_type = [val["answer_type"] for val in self.test_data]
+
         if build_top_vocab:
             allwords = []
             for q in list(np.array(self.train_ans_arr).flatten()) + list(np.array(self.test_ans_arr).flatten()):
