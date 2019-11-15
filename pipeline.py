@@ -21,12 +21,15 @@ from rnn_model import RNNModel
 from FCNN import FCNN
 
 class Pipeline():
-    def __init__(self, data_arr, metric="min_k", batch_size=1):
+    def __init__(self, data_arr, metric="min_k", embed_type="RNN", batch_size=1):
         self.data_arr = data_arr
         self.metric = metric
         self.batch_size = batch_size
         self.train_curr_index = 0
         self.test_curr_index = 0
+        self.embed_type = embed_type
+        if self.embed_type == "RNN":
+            self.embed_index = load_glove()
         self.sess = tf.Session()
         self.graph = tf.get_default_graph()
         set_session(self.sess)
@@ -144,15 +147,18 @@ class Pipeline():
         if discard:
             for ind in range(len(self.q_batch)):
                 q = self.q_batch[ind]
-                words = q.split(" ")
                 curr_inds = []
-                all_found = True
-                for word in words:
-                    if word in self.top_k_q_dict:
-                        curr_inds.append(self.top_k_q_dict[word])
-                    else:
-                        all_found = False
-                        break
+                if embed_type == "RNN":
+                    words = q.split(" ")
+                    all_found = True
+                    for word in words:
+                        if word in self.top_k_q_dict:
+                            curr_inds.append(self.top_k_q_dict[word])
+                        else:
+                            all_found = False
+                            break
+                elif embed_type == "GloVe":
+                    curr_inds.append(embed_question([q], self.embed_index, 300))
             
                 im_id = self.im_id_batch[ind]
                 img_path = img_id_to_path(im_id)
