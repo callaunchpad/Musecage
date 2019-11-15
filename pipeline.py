@@ -21,14 +21,14 @@ from rnn_model import RNNModel
 from FCNN import FCNN
 
 class Pipeline():
-    def __init__(self, data_arr, metric="min_k", embed_type="RNN", batch_size=10):
+    def __init__(self, data_arr, metric="min_k", embed_type="RNN", batch_size=32):
         self.data_arr = data_arr
         self.metric = metric
         self.batch_size = batch_size
         self.train_curr_index = 0
         self.test_curr_index = 0
         self.embed_type = embed_type
-        if self.embed_type == "RNN":
+        if self.embed_type == "GloVe":
             self.embed_index = load_glove()
         self.sess = tf.Session()
         self.graph = tf.get_default_graph()
@@ -151,7 +151,7 @@ class Pipeline():
             for ind in range(len(self.q_batch)):
                 q = self.q_batch[ind]
                 curr_inds = []
-                if embed_type == "RNN":
+                if self.embed_type == "RNN":
                     words = q.split(" ")
                     all_found = True
                     for word in words:
@@ -160,8 +160,9 @@ class Pipeline():
                         else:
                             all_found = False
                             break
-                elif embed_type == "GloVe":
-                    curr_inds.append(embed_question([q], self.embed_index, 300))
+                elif self.embed_type == "GloVe":
+                    curr_inds = embed_question([q], self.embed_index, 300)[0]
+                    all_found = True
             
                 im_id = self.im_id_batch[ind]
                 img_path = img_id_to_path(im_id)
@@ -187,7 +188,10 @@ class Pipeline():
                     found_ans = False
 
                 if all_found and found_ans:
-                    inp_inds.append(np.array(curr_inds + [-1]*(max_len-len(curr_inds))))
+                    if self.embed_type == "RNN":
+                        inp_inds.append(np.array(curr_inds + [-1]*(max_len-len(curr_inds))))
+                    elif self.embed_type == "GloVe":
+                        inp_inds.append(curr_inds)
                     im_embeds.append(np.array(fc2_features))
                     ans_inds.append(self.top_k_ans_dict[most_common_ans])
         else:
@@ -221,7 +225,7 @@ pointwise_layer_size = 1024
 rnn_input_size = 1000
 cnn_input_size = 4096
 
-p = Pipeline(data_arr)
+p = Pipeline(data_arr, embed_type="GloVe")
 w2v = Word2Vec(vocab_size + 1, embed_size)
 p.create_split()
 
@@ -262,15 +266,16 @@ saver = tf.train.Saver()
 
 while p.next_batch(train=True, replace=False):
     train_qs, train_ims, train_ans = p.batch_fcnn()
-    fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size)
+    fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, embed_type="GloVe")
 
     sess = tf.Session()
     tf.global_variables_initializer().run(session=sess)
     if len(train_qs) > 0:
-        train_loss, output, cnn, rnn = fcnn._train_step(sess, np.array(train_ims), np.array(train_qs), np.array(train_ans))
+        train_loss, output, grads = fcnn._train_step(sess, np.array(train_ims), np.array(train_qs), np.array(train_ans))
         print("******************************************************************")
         print("************************* TRAIN LOSS *************************")
         print(train_loss)
+        print(np.linalg.norm(grads[0]))
         # print("************************* CNN LOSS *************************")
         # print(cnn)
         # print("************************* RNN LOSS *************************")
