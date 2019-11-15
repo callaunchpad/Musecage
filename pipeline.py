@@ -287,8 +287,11 @@ while p.next_batch(train=True, replace=False):
         print("******************************************************************")
         train_losses.append(train_loss)
         train_step += 1
-        if train_step % 400 == 0:
+        if train_step % 100 == 0:
+            tf.train.Saver().save(sess, './my-model', global_step=train_step)
             np.savez("losses%d.npz"%train_step, np.array(train_losses))
+        if train_step % 400 == 0:
+            #np.savez("losses%d.npz"%train_step, np.array(train_losses))
             # save_path = saver.save(sess, "model%s.ckpt"%train_step)
             tf.train.write_graph(sess.graph_def, '', 'train%s.pbtxt'%train_step)
     end_time = time.time()
