@@ -21,7 +21,7 @@ from rnn_model import RNNModel
 from FCNN import FCNN
 
 class Pipeline():
-    def __init__(self, data_arr, metric="min_k", embed_type="RNN", batch_size=1):
+    def __init__(self, data_arr, metric="min_k", embed_type="RNN", batch_size=10):
         self.data_arr = data_arr
         self.metric = metric
         self.batch_size = batch_size
@@ -144,6 +144,9 @@ class Pipeline():
         inp_inds = []
         im_embeds = []
         ans_inds = []
+
+        max_len = max([len(q) for q in self.q_batch])
+
         if discard:
             for ind in range(len(self.q_batch)):
                 q = self.q_batch[ind]
@@ -184,7 +187,7 @@ class Pipeline():
                     found_ans = False
 
                 if all_found and found_ans:
-                    inp_inds.append(np.array(curr_inds))
+                    inp_inds.append(np.array(curr_inds + [-1]*(max_len-len(curr_inds))))
                     im_embeds.append(np.array(fc2_features))
                     ans_inds.append(self.top_k_ans_dict[most_common_ans])
         else:
