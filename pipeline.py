@@ -6,6 +6,7 @@ import random
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import time
 from collections import Counter
 from tensorflow.keras.applications.vgg16 import VGG16
 from tensorflow.keras.preprocessing import image
@@ -225,7 +226,7 @@ pointwise_layer_size = 1024
 rnn_input_size = 1000
 cnn_input_size = 4096
 
-p = Pipeline(data_arr, embed_type="GloVe")
+p = Pipeline(data_arr, embed_type="RNN")
 w2v = Word2Vec(vocab_size + 1, embed_size)
 p.create_split()
 
@@ -265,8 +266,9 @@ test_losses = []
 saver = tf.train.Saver()
 
 while p.next_batch(train=True, replace=False):
+    start_time = time.time()
     train_qs, train_ims, train_ans = p.batch_fcnn()
-    fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, embed_type="GloVe")
+    fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, embed_type="RNN")
 
     sess = tf.Session()
     tf.global_variables_initializer().run(session=sess)
@@ -289,4 +291,6 @@ while p.next_batch(train=True, replace=False):
             np.savez("losses%d.npz"%train_step, np.array(train_losses))
             # save_path = saver.save(sess, "model%s.ckpt"%train_step)
             tf.train.write_graph(sess.graph_def, '', 'train%s.pbtxt'%train_step)
+    end_time = time.time()
+    print("time elapsed: ", end_time - start_time, " seconds")
 
