@@ -8,6 +8,7 @@ Project: https://github.com/roatienza/Deep-Learning-Experiments
 
 from __future__ import print_function
 
+from rnn4 import *
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import rnn

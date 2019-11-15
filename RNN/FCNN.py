@@ -1,11 +1,12 @@
 import tensorflow as tf 
 import numpy as np 
 import random
+from rnn4 import *
 
 class FCNN:
 	def __init__(self, cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, net_struct={'h1': 1000}, 
 			           initializer=tf.random_normal_initializer, activation_fn=tf.nn.relu, 
-			           loss_fn=tf.nn.softmax_cross_entropy_with_logits_v2, lr=1e-4, scope='FCNN'):
+			           loss_fn=tf.nn.sparse_cross_entropy_with_logits, lr=1e-4, scope='FCNN'):
 
 		self.cnn_input_size = cnn_input_size
 		self.rnn_input_size = rnn_input_size
@@ -53,13 +54,16 @@ class FCNN:
 	def _build_model(self):
 
 		with tf.variable_scope(self.scope):
-
+			# cnn_in = VGG16(include_top=True, weights="imagenet", input_tensor=None, input_shape=None, pooling=None, classes=self.cnn_input_size)
 			cnn_in = tf.placeholder(tf.float32, [None, self.cnn_input_size], name="cnn_input")
 			rnn_in = tf.placeholder(tf.float32, [None, self.rnn_input_size], name="rnn_input")
 			y = tf.placeholder(tf.float32, [None, self.output_size], name="y")
 
+			rnn = RNNModel(rnn_in)
+			rnn_output = rnn.output
+
 			cnn_dense = tf.layers.dense(cnn_in, self.pointwise_layer_size, activation=self.activation_fn, kernel_initializer=self.initializer, name='cnn_in_layer')
-			rnn_dense = tf.layers.dense(rnn_in, self.pointwise_layer_size, activation=self.activation_fn, kernel_initializer=self.initializer, name='rnn_in_layer')
+			rnn_dense = tf.layers.dense(rnn_output, self.pointwise_layer_size, activation=self.activation_fn, kernel_initializer=self.initializer, name='rnn_in_layer')
 			pointwise_layer = tf.math.multiply(cnn_dense, rnn_dense, name="pointwise_layer")
 
 			prev_layer = pointwise_layer
