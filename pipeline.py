@@ -22,7 +22,7 @@ from rnn_model import RNNModel
 from FCNN import FCNN
 
 class Pipeline():
-    def __init__(self, data_arr, metric="min_k", embed_type="RNN", batch_size=32):
+    def __init__(self, data_arr, metric="min_k", embed_type="RNN", batch_size=64):
         self.data_arr = data_arr
         self.metric = metric
         self.batch_size = batch_size

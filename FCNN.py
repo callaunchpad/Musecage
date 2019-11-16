@@ -6,8 +6,7 @@ from rnn_model import RNNModel
 class FCNN:
 	def __init__(self, cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, net_struct={'h1': 1000}, 
 			           initializer=tf.random_normal_initializer, activation_fn=tf.nn.relu, embed_type="RNN",
-			           loss_fn=tf.nn.sparse_softmax_cross_entropy_with_logits, lr=1e-4):
-
+			           loss_fn=tf.nn.sparse_softmax_cross_entropy_with_logits, lr=1e-3):
 		self.cnn_input_size = cnn_input_size
 		self.rnn_input_size = rnn_input_size
 		self.pointwise_layer_size = pointwise_layer_size
