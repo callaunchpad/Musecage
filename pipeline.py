@@ -282,21 +282,13 @@ p.create_split()
 #         test_losses.append(test_loss)
  
 #     if train_step % 100 == 0:
-<<<<<<< HEAD
 #         tf.train.Saver().save(sess, "%s_model_2/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
 #         np.savez("%s_model_2/train_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
 #         np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
-=======
-#         tf.train.Saver().save(sess, "%s_model/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
-#         np.savez("%s_model/train_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
-#         np.savez("%s_model/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
->>>>>>> 772dd1e4d3393d35b86d703b2fe6006ca431faa6
 #     train_step += 1
 
 #     end_time = time.time()
 #     print("time elapsed: ", end_time - start_time, " seconds")
-
-<<<<<<< HEAD
 # tf.train.Saver().save(sess, "%s_model_2/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
 # np.savez("%s_model_2/losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
 # np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
@@ -309,13 +301,6 @@ with tf.Session() as sess:
     tf.saved_model.loader.load(sess, ["serve"], "./RNN_749-749.data-00000-of-00001")
     saved_model = tf.get_default_graph()
     p.get_accuracy(p.get_accuracy_dict(saved_model, sess))
-
-
-=======
-# tf.train.Saver().save(sess, "%s_model/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
-# np.savez("%s_model/losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
-# np.savez("%s_model/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
->>>>>>> 772dd1e4d3393d35b86d703b2fe6006ca431faa6
 
 
 # run = True
