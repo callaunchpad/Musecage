@@ -31,7 +31,8 @@ class Pipeline():
         self.embed_type = embed_type
         if self.embed_type == "GloVe":
             self.embed_index = load_glove()
-        
+        elif self.embed_type == "Word2Vec":
+            self.embed_mat = np.load("word2vec_model/embed_mat_2000.npz")["arr_0"]
         
     def create_split(self, split_val=.8, custom_split=False, custom_train=[], custom_test=[], build_top_vocab=True, top_k=1000):
         if custom_split:
@@ -160,6 +161,17 @@ class Pipeline():
                 elif self.embed_type == "GloVe":
                     curr_inds = embed_question([q], self.embed_index, 300)[0]
                     all_found = True
+                elif self.embed_type == "Word2Vec":
+                    words = q.split(" ")
+                    all_found = True
+                    curr_inds = np.zeros((300))
+                    for word in words:
+                        if word in self.top_k_q_dict:
+                            word_embed = self.embed_mat[self.top_k_q_dict[word]]
+                            curr_inds = np.add(curr_inds, word_embed)
+                        else:
+                            all_found = False
+                            break
             
                 found_im = True
                 try:
@@ -178,6 +190,8 @@ class Pipeline():
                     if self.embed_type == "RNN":
                         inp_inds.append(np.array(curr_inds + [-1]*(max_len-len(curr_inds))))
                     elif self.embed_type == "GloVe":
+                        inp_inds.append(curr_inds)
+                    elif self.embed_type == "Word2Vec":
                         inp_inds.append(curr_inds)
                     im_embeds.append(np.array(fc2_features))
                     ans_inds.append(self.top_k_ans_dict[most_common_ans])
@@ -212,7 +226,8 @@ pointwise_layer_size = 1024
 rnn_input_size = 1000
 cnn_input_size = 4096
 # embed_type = "GloVe"
-embed_type = "RNN"
+# embed_type = "RNN"
+embed_type = "Word2Vec"
 
 p = Pipeline(data_arr, embed_type=embed_type)
 p.create_split()
@@ -223,42 +238,44 @@ curr_samples = 0
 train_losses = []
 test_losses = []
 
-fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, embed_type=embed_type, lr=1e-4)
-w2v = Word2Vec(vocab_size + 1, embed_size)
+# fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, embed_type=embed_type, lr=1e-4)
+# w2v = Word2Vec(vocab_size + 1, embed_size)
 
-sess = tf.Session()
-tf.global_variables_initializer().run(session=sess)
-
-while p.next_batch(train=True, replace=False):
-    start_time = time.time()
-    train_qs, train_ims, train_ans = p.batch_fcnn()
-    if len(train_qs) > 0:
-        train_loss = fcnn.train_step(sess, np.array(train_ims), np.array(train_qs), np.array(train_ans))
-        print("TRAIN LOSS: %f "%(train_loss))
-        train_losses.append(train_loss)
-        
-    p.next_batch(train=False, replace=True)
-    test_qs, test_ims, test_ans = p.batch_fcnn()
-    if len(test_qs) > 0:
-        test_loss = fcnn.predict(sess, np.array(test_ims), np.array(test_qs), np.array(test_ans))
-        print("TEST LOSS: %f "%(test_loss))
-        test_losses.append(test_loss)
- 
-    if train_step % 100 == 0:
-        tf.train.Saver().save(sess, "%s_model_2/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
-        np.savez("%s_model_2/train_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
-        np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
-    train_step += 1
-
-    end_time = time.time()
-    print("time elapsed: ", end_time - start_time, " seconds")
-
-tf.train.Saver().save(sess, "%s_model_2/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
-np.savez("%s_model_2/losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
-np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
-
+# sess = tf.Session()
+# tf.global_variables_initializer().run(session=sess)
 
 # while p.next_batch(train=True, replace=False):
+#     start_time = time.time()
+#     train_qs, train_ims, train_ans = p.batch_fcnn()
+#     if len(train_qs) > 0:
+#         train_loss = fcnn.train_step(sess, np.array(train_ims), np.array(train_qs), np.array(train_ans))
+#         print("TRAIN LOSS: %f "%(train_loss))
+#         train_losses.append(train_loss)
+        
+#     p.next_batch(train=False, replace=True)
+#     test_qs, test_ims, test_ans = p.batch_fcnn()
+#     if len(test_qs) > 0:
+#         test_loss = fcnn.predict(sess, np.array(test_ims), np.array(test_qs), np.array(test_ans))
+#         print("TEST LOSS: %f "%(test_loss))
+#         test_losses.append(test_loss)
+ 
+#     if train_step % 100 == 0:
+#         tf.train.Saver().save(sess, "%s_model/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
+#         np.savez("%s_model/train_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
+#         np.savez("%s_model/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
+#     train_step += 1
+
+#     end_time = time.time()
+#     print("time elapsed: ", end_time - start_time, " seconds")
+
+# tf.train.Saver().save(sess, "%s_model/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
+# np.savez("%s_model/losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
+# np.savez("%s_model/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
+
+
+# run = True
+# while run:
+#     p.next_batch(train=True, replace=True)
 #     train_inp, train_out = p.batch_word2vec()
 
 #     batch_samples = len(train_inp)
@@ -275,10 +292,44 @@ np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step)
 
 #     train_losses.append(train_loss)
 #     test_losses.append(test_loss)
-    
+
+#     if train_step % 100 == 0:
+#         tf.train.Saver().save(sess, "word2vec_model/word2vec_%d"%(train_step), global_step=train_step)
+#         np.savez("word2vec_model/word2vec_train_losses_%d"%(train_step), np.array(train_losses))
+#         np.savez("word2vec_model/word2vec_test_losses_%d"%(train_step), np.array(test_losses))
+#     if train_step == 2000:
+#         run = False
 #     print("TRAIN STEP: %d | SAMPLES IN TRAIN BATCH: %d | TRAIN SAMPLES SO FAR: %d | TRAIN LOSS: %f | TEST LOSS: %f" %(train_step, batch_samples, curr_samples, train_loss, test_loss))
+
+# tf.train.Saver().save(sess, "word2vec_model/word2vec_%d"%(train_step), global_step=train_step)
+# np.savez("word2vec_model/word2vec_train_losses_%d"%(train_step), np.array(train_losses))
+# np.savez("word2vec_model/word2vec_test_losses_%d"%(train_step), np.array(test_losses))
+
+# weights = w2v.get_embed()
+# weights = sess.run(weights)
+# np.savez("word2vec_model/embed_mat_%d.npz"%train_step, weights)
 
 # train_steps = list(range(train_step))
 # plt.plot(train_steps, train_losses)
 # plt.plot(train_steps, test_losses)
 # plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

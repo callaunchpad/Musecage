@@ -23,25 +23,6 @@ class FCNN:
 		tf.reset_default_graph() 
 		self.build_model()
 
-	def train(self, sess, batched_cnn_inputs, batched_rnn_inputs, batched_outputs, 
-			        save_model_loc="", checkpoint_freq=100, epochs=10000, verbose=True):
-
-		num_batches = len(batched_outputs)
-
-		for epoch in range(epochs):
-			# get random batch
-			i = random.randint(0, num_batches-1)
-			cnn_batch, rnn_batch, y_batch = batched_cnn_inputs[i], batched_rnn_inputs[i], batched_outputs[i]
-			step_loss = self._train_step(sess, cnn_batch, rnn_batch, y_batch)
-			if verbose:
-				if epoch % checkpoint_freq:
-					print("Epoch: ", epoch, "Loss:", step_loss)
-					if save_model_loc:
-						print("Saving Model...")
-						print("================================")
-						self._save_model(save_model_loc)
-
-
 	def predict(self, sess, cnn_batch, q_batch, label_batch):
 		loss = sess.run(self.loss, feed_dict={self.cnn_in: cnn_batch, self.q_batch: q_batch, self.labels: label_batch})
 		return loss
@@ -56,6 +37,8 @@ class FCNN:
 			self.q_batch = tf.placeholder(tf.int32, [None, None], name="q_batch")
 		elif self.embed_type == "GloVe":
 			self.q_batch = tf.placeholder(tf.float64, [None, 300])
+		elif self.embed_type == "Word2Vec":
+			self.q_batch = tf.placeholder(tf.float64, [None, 300])
 		self.labels = tf.placeholder(tf.int32, [None], name="labels")
 
 		if self.embed_type == "RNN":
@@ -66,6 +49,8 @@ class FCNN:
 			self.embed_output = rnn.output
 			self.embed_output = tf.nn.l2_normalize(self.embed_output)
 		elif self.embed_type == "GloVe":
+			self.embed_output = tf.stop_gradient(self.q_batch)
+		elif self.embed_type == "Word2Vec":
 			self.embed_output = tf.stop_gradient(self.q_batch)
 
 		self.cnn_l2_reg = tf.nn.l2_normalize(tf.stop_gradient(self.cnn_in))
