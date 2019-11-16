@@ -281,11 +281,11 @@ p.create_split()
 
 #get accuracy
 p.next_batch(train=False)
-p.get_preds()
 
-with sess as tf.Session():
+with tf.Session() as sess:
     tf.global_variables_initializer().run(session=sess)
-    saved_model = tf.saved_model.load(fdslkfjlisadhio)
+    tf.saved_model.loader.load(sess, ["serve"], "./RNN_749-749.data-00000-of-00001")
+    saved_model = tf.get_default_graph()
     p.get_accuracy(p.get_accuracy_dict(saved_model, sess))
 
 
