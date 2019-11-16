@@ -28,8 +28,8 @@ class Word2Vec():
 		self.one_hot = tf.one_hot(self.input, self.vocab_size, dtype=tf.float64)
 		self.labels = tf.stop_gradient(self.labels)
 
-		self.embed_layer = tf.layers.dense(self.one_hot, self.embedding_size)
-		self.output = tf.layers.dense(self.embed_layer, self.vocab_size)
+		self.embed_layer = tf.layers.dense(self.one_hot, self.embedding_size, use_bias=False)
+		self.output = tf.layers.dense(self.embed_layer, self.vocab_size, use_bias=False)
 		
 		self.loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.output, labels=self.labels))
 
@@ -48,3 +48,7 @@ class Word2Vec():
 	def predict(self, features, sess):
 		pred = sess.run(self.output, feed_dict={self.input: features})
 		return pred
+
+	def get_embed(self):
+		weights = tf.get_default_graph().get_tensor_by_name(os.path.split(self.embed_layer.name)[0] + '/kernel:0')
+		return weights
