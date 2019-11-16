@@ -188,21 +188,43 @@ class Pipeline():
         return inp_inds, im_embeds, ans_inds
 
 
-    def get_preds(self, model_class=KNNModel, k=4):
-        model = model_class(k)
-        model.train(self.train_q_arr, self.train_q_id_arr, self.train_im_id_arr, self.train_ans_arr)
-        
-        self.preds = model.predict(self.test_q_arr, self.test_q_id_arr, self.test_im_id_arr)
+    def get_accuracy_dict(self, model, sess=None, k=4):
+        if type(model) is KNNModel:
+            model.train(self.train_q_arr, self.train_q_id_arr, self.train_im_id_arr, self.train_ans_arr)
+            self.preds = model.predict(self.test_q_arr, self.test_q_id_arr, self.test_im_id_arr)
+        elif type(model) is FCNN:
+            if not sess:
+                print("No session inputed")
+                return None
+            else:
+                inp_inds, im_embeds, ans_inds = self.batch_fcnn()
+                ans_type_dict = {"yes/no": (0, 0), "number": (0, 0), "other": (0, 0)}
+                for i in range(len(inp_inds)):
+                    pred_output = sess.run([model.output], feed_dict={model.cnn_in: im_embeds[i], model.q_batch: inp_inds[i]})
+                    ans_type_dict[self.test_ans_type[ans_inds[i]]][1] += 1
+                    max_index = tf.math.argmax(tf.nn.softmax(pred_output))
+                    if max_index == ans_inds[i]:
+                        ans_type_dict[self.test_ans_type[ans_inds[i]]][0] += 1
+                return ans_type_dict
 
-    def get_accuracy(self):
-        acc = 0
-        for i in range(len(self.preds)):
-            count = self.test_ans_arr[i].count(self.preds[i][0])
-            print(self.preds[i], self.test_ans_arr[i])
-            if self.metric == "min_k":
-                acc += min(count/3, 1)    
-        acc /= len(self.preds)
-        return acc
+    def get_accuracy(self, ans_type_dict):
+        print("yes/no accuracy: ", ans_type_dict["yes/no"][0]/ans_type_dict["yes/no"][1])
+        print("number accuracy: ", ans_type_dict["number"][0]/ans_type_dict["number"][1])
+        print("other accuracy: ", ans_type_dict["other"][0]/ans_type_dict["other"][1])
+        total_correct = ans_type_dict["yes/no"][0] + ans_type_dict["number"][0] + ans_type_dict["other"][0]
+        total = ans_type_dict["yes/no"][1] + ans_type_dict["number"][1] + ans_type_dict["other"][1]
+        print("total accuracy: ", total_correct/total)
+
+
+    # def get_accuracy(self):
+    #     acc = 0
+    #     for i in range(len(self.preds)):
+    #         count = self.test_ans_arr[i].count(self.preds[i][0])
+    #         print(self.preds[i], self.test_ans_arr[i])
+    #         if self.metric == "min_k":
+    #             acc += min(count/3, 1)    
+    #     acc /= len(self.preds)
+    #     return acc
 
 data_arr = get_by_ques_type([])[:30000]
 vocab_size = 1000
@@ -217,45 +239,56 @@ embed_type = "RNN"
 p = Pipeline(data_arr, embed_type=embed_type)
 p.create_split()
 
-train_step = 0
-curr_samples = 0
+# train_step = 0
+# curr_samples = 0
 
-train_losses = []
-test_losses = []
+# train_losses = []
+# test_losses = []
 
-fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, embed_type=embed_type, lr=1e-4)
-w2v = Word2Vec(vocab_size + 1, embed_size)
+# fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, embed_type=embed_type, lr=1e-4)
+# w2v = Word2Vec(vocab_size + 1, embed_size)
 
-sess = tf.Session()
-tf.global_variables_initializer().run(session=sess)
+# sess = tf.Session()
+# tf.global_variables_initializer().run(session=sess)
 
-while p.next_batch(train=True, replace=False):
-    start_time = time.time()
-    train_qs, train_ims, train_ans = p.batch_fcnn()
-    if len(train_qs) > 0:
-        train_loss = fcnn.train_step(sess, np.array(train_ims), np.array(train_qs), np.array(train_ans))
-        print("TRAIN LOSS: %f "%(train_loss))
-        train_losses.append(train_loss)
+# while p.next_batch(train=True, replace=False):
+#     start_time = time.time()
+#     train_qs, train_ims, train_ans = p.batch_fcnn()
+#     if len(train_qs) > 0:
+#         train_loss = fcnn.train_step(sess, np.array(train_ims), np.array(train_qs), np.array(train_ans))
+#         print("TRAIN LOSS: %f "%(train_loss))
+#         train_losses.append(train_loss)
         
-    p.next_batch(train=False, replace=True)
-    test_qs, test_ims, test_ans = p.batch_fcnn()
-    if len(test_qs) > 0:
-        test_loss = fcnn.predict(sess, np.array(test_ims), np.array(test_qs), np.array(test_ans))
-        print("TEST LOSS: %f "%(test_loss))
-        test_losses.append(test_loss)
+#     p.next_batch(train=False, replace=True)
+#     test_qs, test_ims, test_ans = p.batch_fcnn()
+#     if len(test_qs) > 0:
+#         test_loss = fcnn.predict(sess, np.array(test_ims), np.array(test_qs), np.array(test_ans))
+#         print("TEST LOSS: %f "%(test_loss))
+#         test_losses.append(test_loss)
  
-    if train_step % 100 == 0:
-        tf.train.Saver().save(sess, "%s_model_2/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
-        np.savez("%s_model_2/train_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
-        np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
-    train_step += 1
+#     if train_step % 100 == 0:
+#         tf.train.Saver().save(sess, "%s_model_2/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
+#         np.savez("%s_model_2/train_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
+#         np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
+#     train_step += 1
 
-    end_time = time.time()
-    print("time elapsed: ", end_time - start_time, " seconds")
+#     end_time = time.time()
+#     print("time elapsed: ", end_time - start_time, " seconds")
 
-tf.train.Saver().save(sess, "%s_model_2/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
-np.savez("%s_model_2/losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
-np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
+# tf.train.Saver().save(sess, "%s_model_2/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
+# np.savez("%s_model_2/losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
+# np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
+
+#get accuracy
+p.next_batch(train=False)
+p.get_preds()
+
+with sess as tf.Session():
+    tf.global_variables_initializer().run(session=sess)
+    saved_model = tf.saved_model.load(fdslkfjlisadhio)
+    p.get_accuracy(p.get_accuracy_dict(saved_model, sess))
+
+
 
 
 # while p.next_batch(train=True, replace=False):
