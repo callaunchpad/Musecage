@@ -298,8 +298,10 @@ p.next_batch(train=False)
 
 with tf.Session() as sess:
     tf.global_variables_initializer().run(session=sess)
-    tf.saved_model.loader.load(sess, ["serve"], "./RNN_749-749.data-00000-of-00001")
-    saved_model = tf.get_default_graph()
+    saver = tf.train.Saver()
+    saver.restore(sess, "saved_RNN")
+    output_model = tf.get_trainable_variables(adf)
+
     p.get_accuracy(p.get_accuracy_dict(saved_model, sess))
 
 
