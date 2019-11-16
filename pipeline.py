@@ -238,11 +238,40 @@ curr_samples = 0
 train_losses = []
 test_losses = []
 
-# fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, embed_type=embed_type, lr=1e-4)
+# def get_im_embedding(img_path):
+#     """
+#     Args:
+#         - img_path: path to image
+        
+#     Return:
+#         - (4096,) vector embedding of image
+#     """     
+#     img = image.load_img(img_path, target_size=(224, 224))
+#     x = image.img_to_array(img)
+#     x = np.expand_dims(x, axis=0)
+#     x = preprocess_input(x)
+    
+#     vision_model = VGG16(include_top=True, weights="imagenet", input_tensor=None, input_shape=None, pooling=None, classes=1000)
+#     features = vision_model.predict(x)
+#     fc2_features_extractor_model = Model(inputs=vision_model.input, outputs=vision_model.get_layer('fc2').output)
+    
+#     fc2_features = fc2_features_extractor_model.predict(x)
+#     fc2_features = fc2_features.reshape((4096,))
+    
+#     return fc2_features
+
+# test = get_im_embedding("test.png")
+# np.savez("test.npz", test)
+
+fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, embed_type=embed_type, lr=1e-4)
 # w2v = Word2Vec(vocab_size + 1, embed_size)
 
-# sess = tf.Session()
-# tf.global_variables_initializer().run(session=sess)
+sess = tf.Session()
+tf.global_variables_initializer().run(session=sess)
+
+im = np.load("test.npz")["arr_0"]
+loaded = tf.train.Saver().restore(sess, "rnn_load_model/RNN_749-749.ckpt")
+# print(res)
 
 # while p.next_batch(train=True, replace=False):
 #     start_time = time.time()
