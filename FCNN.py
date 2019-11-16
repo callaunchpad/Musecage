@@ -64,6 +64,7 @@ class FCNN:
 
 			rnn = RNNModel(self.one_hot)
 			self.embed_output = rnn.output
+			self.embed_output = tf.nn.l2_normalize(self.embed_output)
 		elif self.embed_type == "GloVe":
 			self.embed_output = tf.stop_gradient(self.q_batch)
 
@@ -86,7 +87,6 @@ class FCNN:
 
 		self.labels = tf.stop_gradient(self.labels)
 		self.loss = tf.reduce_mean(self.loss_fn(labels=self.labels, logits=self.output))
-		self.grads = tf.gradients(self.loss, self.output)
 		self.train_op = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss)
 
 
