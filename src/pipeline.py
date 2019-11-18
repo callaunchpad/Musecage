@@ -184,7 +184,7 @@ class Pipeline():
             
                 found_im = True
                 try:
-                    fc2_features = np.load("data/vqa/im_embed_data/"+str(self.im_id_batch[ind])+".npz")["arr_0"]
+                    fc2_features = np.load("../data/vqa/im_embed_data/"+str(self.im_id_batch[ind])+".npz")["arr_0"]
                 except:
                     found_im = False    
 

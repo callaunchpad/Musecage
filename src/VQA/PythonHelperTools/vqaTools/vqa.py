@@ -23,11 +23,11 @@ import copy
 class VQA:
 	def __init__(self, annotation_file=None, question_file=None):
 		"""
-       	Constructor of VQA helper class for reading and visualizing questions and answers.
-        :param annotation_file (str): location of VQA annotation file
-        :return:
+		Constructor of VQA helper class for reading and visualizing questions and answers.
+		:param annotation_file (str): location of VQA annotation file
+		:return:
 		"""
-        # load dataset
+		# load dataset
 		self.dataset = {}
 		self.questions = {}
 		self.qa = {}
@@ -44,22 +44,22 @@ class VQA:
 			self.createIndex()
 
 	def createIndex(self):
-        # create index
+		# create index
 		print('creating index...')
- 		imgToQA = {ann['image_id']: [] for ann in self.dataset['annotations']}
+		imgToQA = {ann['image_id']: [] for ann in self.dataset['annotations']}
 		qa =  {ann['question_id']:       [] for ann in self.dataset['annotations']}
 		qqa = {ann['question_id']:       [] for ann in self.dataset['annotations']}
- 		for ann in self.dataset['annotations']:
+		for ann in self.dataset['annotations']:
 			imgToQA[ann['image_id']] += [ann]
 			qa[ann['question_id']] = ann
 		for ques in self.questions['questions']:
-  			qqa[ques['question_id']] = ques
+			qqa[ques['question_id']] = ques
 		print('index created!')
 
- 		# create class members
- 		self.qa = qa
+		# create class members
+		self.qa = qa
 		self.qqa = qqa
- 		self.imgToQA = imgToQA
+		self.imgToQA = imgToQA
 
 	def info(self):
 		"""
@@ -72,12 +72,12 @@ class VQA:
 	def getQuesIds(self, imgIds=[], quesTypes=[], ansTypes=[]):
 		"""
 		Get question ids that satisfy given filter conditions. default skips that filter
-		:param 	imgIds    (int array)   : get question ids for given imgs
+		:param  imgIds    (int array)   : get question ids for given imgs
 				quesTypes (str array)   : get question ids for given question types
 				ansTypes  (str array)   : get question ids for given answer types
 		:return:    ids   (int array)   : integer array of question ids
 		"""
-		imgIds 	  = imgIds    if type(imgIds)    == list else [imgIds]
+		imgIds    = imgIds    if type(imgIds)    == list else [imgIds]
 		quesTypes = quesTypes if type(quesTypes) == list else [quesTypes]
 		ansTypes  = ansTypes  if type(ansTypes)  == list else [ansTypes]
 
@@ -87,9 +87,9 @@ class VQA:
 			if not len(imgIds) == 0:
 				anns = sum([self.imgToQA[imgId] for imgId in imgIds if imgId in self.imgToQA],[])
 			else:
- 				anns = self.dataset['annotations']
+				anns = self.dataset['annotations']
 			anns = anns if len(quesTypes) == 0 else [ann for ann in anns if ann['question_type'] in quesTypes]
- 			anns = anns if len(ansTypes)  == 0 else [ann for ann in anns if ann['answer_type'] in ansTypes]
+			anns = anns if len(ansTypes)  == 0 else [ann for ann in anns if ann['answer_type'] in ansTypes]
 		ids = [ann['question_id'] for ann in anns]
 		return ids
 
@@ -97,8 +97,8 @@ class VQA:
 		"""
 		Get image ids that satisfy given filter conditions. default skips that filter
 		:param quesIds   (int array)   : get image ids for given question ids
-               quesTypes (str array)   : get image ids for given question types
-               ansTypes  (str array)   : get image ids for given answer types
+			   quesTypes (str array)   : get image ids for given question types
+			   ansTypes  (str array)   : get image ids for given answer types
 		:return: ids     (int array)   : integer array of image ids
 		"""
 		quesIds   = quesIds   if type(quesIds)   == list else [quesIds]
@@ -164,7 +164,7 @@ class VQA:
 		assert set(annsQuesIds) == set(self.getQuesIds()), \
 		'Results do not correspond to current VQA set. Either the results do not have predictions for all question ids in annotation file or there is atleast one question id that does not belong to the question ids in the annotation file.'
 		for ann in anns:
-			quesId 			     = ann['question_id']
+			quesId               = ann['question_id']
 			if res.dataset['task_type'] == 'Multiple Choice':
 				assert ann['answer'] in self.qqa[quesId]['multiple_choices'], 'predicted answer is not one of the multiple choices'
 			qaAnn                = self.qa[quesId]
