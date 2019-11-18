@@ -1,0 +1,6 @@
+data/
+VQA/
+.vscode/
+src/__pycache__/
+saved_models/
+.DS_Store
