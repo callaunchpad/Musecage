@@ -79,8 +79,10 @@ class Pipeline():
             c = Counter(allwords)
             top_k_words = c.most_common(top_ans_k)
             self.top_k_ans_dict = {}
+            self.top_k_ans_dict_reverse = {}
             for ind in range(len(top_k_words)):
                 self.top_k_ans_dict[top_k_words[ind][0]] = ind
+                self.top_k_ans_dict_reverse[ind] = top_k_words[ind][0]
 
     def next_batch(self, train=True, replace=False):
         next_batch_avail = True
@@ -92,7 +94,7 @@ class Pipeline():
                 self.ans_batch = self.train_ans_arr[self.train_curr_index : self.train_curr_index + self.batch_size]
                 self.ans_type_batch = self.train_ans_type_arr[self.train_curr_index : self.train_curr_index + self.batch_size]
                 self.train_curr_index += self.batch_size
-                if self.train_curr_index == len(self.train_q_arr):
+                if self.train_curr_index >= len(self.train_q_arr):
                     next_batch_avail = False
             else:
                 #hella wrong someone fix this
@@ -109,7 +111,7 @@ class Pipeline():
                 self.ans_batch = self.test_ans_arr[self.test_curr_index : self.test_curr_index + self.batch_size]
                 self.ans_type_batch = self.test_ans_type_arr[self.train_curr_index : self.train_curr_index + self.batch_size]
                 self.test_curr_index += self.batch_size
-                if self.train_curr_index == len(self.test_q_arr):
+                if self.test_curr_index >= len(self.test_q_arr):
                     next_batch_avail = False
             else:
                 self.q_batch = random.sample(self.test_q_arr, self.batch_size)
@@ -151,6 +153,8 @@ class Pipeline():
         inp_inds = []
         im_embeds = []
         ans_inds = []
+        ans_types = []
+        all_ans = []
 
         max_len = max([len(q) for q in self.q_batch])
 
@@ -204,11 +208,13 @@ class Pipeline():
                         inp_inds.append(curr_inds)
                     im_embeds.append(np.array(fc2_features))
                     ans_inds.append(self.top_k_ans_dict[most_common_ans])
+                    ans_types.append(self.ans_type_batch[ind])
+                    all_ans.append(ans)
         else:
             # to be implemented
             pass
 
-        return inp_inds, im_embeds, ans_inds
+        return inp_inds, im_embeds, ans_inds, ans_types, all_ans
 
 
     def get_accuracy_dict(self, model, sess=None, k=4):
@@ -221,14 +227,18 @@ class Pipeline():
                 return None
             else:
                 ans_type_dict = {"yes/no": [0, 0], "number": [0, 0], "other": [0, 0]}
+                test_step = 0
                 while self.next_batch(train=False):
-                    inp_inds, im_embeds, ans_inds = self.batch_fcnn()
+                    print("TEST STEP: %d"%test_step)
+                    inp_inds, im_embeds, ans_inds, ans_types, all_ans = self.batch_fcnn()
                     for i in range(len(inp_inds)):
-                        pred_output = sess.run([model.output], feed_dict={model.cnn_in: [im_embeds[i]], model.q_batch: [inp_inds[i]]})
-                        ans_type_dict[self.test_ans_type[ans_inds[i]]][1] += 1
-                        max_index = tf.math.argmax(tf.nn.softmax(pred_output))
-                        if max_index == ans_inds[i]:
-                            ans_type_dict[self.test_ans_type[ans_inds[i]]][0] += 1
+                        pred_output = sess.run(model.output, feed_dict={model.cnn_in: [im_embeds[i]], model.q_batch: [inp_inds[i]]})
+                        ans_type_dict[ans_types[i]][1] += 1
+                        pred_value = np.argmax(pred_output)
+                        c = Counter(all_ans[i])
+                        if c[self.top_k_ans_dict_reverse[pred_value]] >= 3:
+                            ans_type_dict[ans_types[i]][0] += 1
+                    test_step += 1
                 return ans_type_dict
 
     def get_accuracy(self, ans_type_dict):
@@ -263,55 +273,55 @@ embed_type = "RNN"
 p = Pipeline(data_arr, embed_type=embed_type)
 p.create_split()
 
-train_step = 0
-curr_samples = 0
-
-train_losses = []
-test_losses = []
-
-for k, v in p.top_k_ans_dict.items():
-    if v == 0:
-        print(k)
-
-fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, embed_type=embed_type, lr=1e-4)
-# w2v = Word2Vec(vocab_size + 1, embed_size)
-
-sess = tf.Session()
-tf.global_variables_initializer().run(session=sess)
-
-while p.next_batch(train=True, replace=False):
-    start_time = time.time()
-    train_qs, train_ims, train_ans = p.batch_fcnn()
-    if len(train_qs) > 0:
-        train_loss = fcnn.train_step(sess, np.array(train_ims), np.array(train_qs), np.array(train_ans))
-        print("TRAIN LOSS: %f "%(train_loss))
-        train_losses.append(train_loss)
-        
-    p.next_batch(train=False, replace=True)
-    test_qs, test_ims, test_ans = p.batch_fcnn()
-    if len(test_qs) > 0:
-        test_loss = fcnn.evaluate(sess, np.array(test_ims), np.array(test_qs), np.array(test_ans))
-        print("TEST LOSS: %f "%(test_loss))
-        test_losses.append(test_loss)
- 
-    # if train_step % 100 == 0:
-        # tf.train.Saver().save(sess, "%s_model_2/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
-        # np.savez("%s_model_2/train_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
-        # np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
-    train_step += 1
-
-    end_time = time.time()
-    print("time elapsed: ", end_time - start_time, " seconds")
-# tf.train.Saver().save(sess, "%s_model_2/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
-# np.savez("%s_model_2/losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
-# np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
-
 #get accuracy
 fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, embed_type=embed_type, lr=1e-4)
 with tf.Session() as sess:
     saver = tf.train.Saver()
-    saver.restore(sess, "saved_RNN/RNN_749-749")
+    saver.restore(sess, "../saved_models/saved_RNN/RNN_749-749")
     p.get_accuracy(p.get_accuracy_dict(fcnn, sess))
+
+# train_step = 0
+# curr_samples = 0
+
+# train_losses = []
+# test_losses = []
+
+# for k, v in p.top_k_ans_dict.items():
+#     if v == 0:
+#         print(k)
+
+# fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, embed_type=embed_type, lr=1e-4)
+# # w2v = Word2Vec(vocab_size + 1, embed_size)
+
+# sess = tf.Session()
+# tf.global_variables_initializer().run(session=sess)
+
+# while p.next_batch(train=True, replace=False):
+#     start_time = time.time()
+#     train_qs, train_ims, train_ans = p.batch_fcnn()
+#     if len(train_qs) > 0:
+#         train_loss = fcnn.train_step(sess, np.array(train_ims), np.array(train_qs), np.array(train_ans))
+#         print("TRAIN LOSS: %f "%(train_loss))
+#         train_losses.append(train_loss)
+        
+#     p.next_batch(train=False, replace=True)
+#     test_qs, test_ims, test_ans = p.batch_fcnn()
+#     if len(test_qs) > 0:
+#         test_loss = fcnn.evaluate(sess, np.array(test_ims), np.array(test_qs), np.array(test_ans))
+#         print("TEST LOSS: %f "%(test_loss))
+#         test_losses.append(test_loss)
+ 
+#     # if train_step % 100 == 0:
+#         # tf.train.Saver().save(sess, "%s_model_2/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
+#         # np.savez("%s_model_2/train_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
+#         # np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
+#     train_step += 1
+
+#     end_time = time.time()
+#     print("time elapsed: ", end_time - start_time, " seconds")
+# tf.train.Saver().save(sess, "%s_model_2/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
+# np.savez("%s_model_2/losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
+# np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
 
 # output = fcnn.get_output(sess, im, [curr_inds], ans)
 # np.savez("test_out.npz", output)
