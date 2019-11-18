@@ -6,7 +6,7 @@ import skimage.io as io
 import matplotlib.pyplot as plt
 import numpy as np
 
-data_dir = "data"
+data_dir = "../data"
 vqa_data_dir = "vqa"
 image_dir = "abstract_images"
 image_base = "abstract_v002_train2015_"
