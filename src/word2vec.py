@@ -36,16 +36,16 @@ class Word2Vec():
 		self.optimizer = tf.train.AdamOptimizer(1e-4)
 		self.train_op = self.optimizer.minimize(self.loss)
 
-	def train_step(self, features, labels, sess):
-		loss, _ = sess.run([self.loss, self.train_op], 
-												feed_dict={self.input: features, self.labels: labels.astype(np.float64)})
-		return loss
-	
 	def evaluate(self, features, labels, sess):
 		loss = sess.run(self.loss, feed_dict={self.input: features, self.labels: labels})
 		return loss
 
-	def predict(self, features, sess):
+	def train_step(self, features, labels, sess):
+		loss, _ = sess.run([self.loss, self.train_op], 
+												feed_dict={self.input: features, self.labels: labels.astype(np.float64)})
+		return loss
+
+	def get_output(self, features, sess):
 		pred = sess.run(self.output, feed_dict={self.input: features})
 		return pred
 
