@@ -211,14 +211,15 @@ class Pipeline():
                 print("No session inputed")
                 return None
             else:
-                inp_inds, im_embeds, ans_inds = self.batch_fcnn()
-                ans_type_dict = {"yes/no": (0, 0), "number": (0, 0), "other": (0, 0)}
-                for i in range(len(inp_inds)):
-                    pred_output = sess.run([model.output], feed_dict={model.cnn_in: im_embeds[i], model.q_batch: inp_inds[i]})
-                    ans_type_dict[self.test_ans_type[ans_inds[i]]][1] += 1
-                    max_index = tf.math.argmax(tf.nn.softmax(pred_output))
-                    if max_index == ans_inds[i]:
-                        ans_type_dict[self.test_ans_type[ans_inds[i]]][0] += 1
+                ans_type_dict = {"yes/no": [0, 0], "number": [0, 0], "other": [0, 0]}
+                while self.next_batch(train=False):
+                    inp_inds, im_embeds, ans_inds = self.batch_fcnn()
+                    for i in range(len(inp_inds)):
+                        pred_output = sess.run([model.output], feed_dict={model.cnn_in: [im_embeds[i]], model.q_batch: [inp_inds[i]]})
+                        ans_type_dict[self.test_ans_type[ans_inds[i]]][1] += 1
+                        max_index = tf.math.argmax(tf.nn.softmax(pred_output))
+                        if max_index == ans_inds[i]:
+                            ans_type_dict[self.test_ans_type[ans_inds[i]]][0] += 1
                 return ans_type_dict
 
     def get_accuracy(self, ans_type_dict):
@@ -249,7 +250,7 @@ rnn_input_size = 1000
 cnn_input_size = 4096
 # embed_type = "GloVe"
 # embed_type = "RNN"
-embed_type = "Word2Vec"
+embed_type = "RNN"
 
 p = Pipeline(data_arr, embed_type=embed_type)
 p.create_split()
@@ -294,15 +295,11 @@ p.create_split()
 # np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
 
 #get accuracy
-p.next_batch(train=False)
-
+fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, embed_type=embed_type, lr=1e-4)
 with tf.Session() as sess:
-    tf.global_variables_initializer().run(session=sess)
     saver = tf.train.Saver()
-    saver.restore(sess, "saved_RNN")
-    output_model = tf.get_trainable_variables(adf)
-
-    p.get_accuracy(p.get_accuracy_dict(saved_model, sess))
+    saver.restore(sess, "saved_RNN/RNN_749-749")
+    p.get_accuracy(p.get_accuracy_dict(fcnn, sess))
 
 
 # run = True
