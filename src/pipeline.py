@@ -96,11 +96,14 @@ class Pipeline():
                     next_batch_avail = False
             else:
                 #hella wrong someone fix this
-                self.q_batch = random.sample(self.train_q_arr, self.batch_size)
-                self.q_id_batch = random.sample(self.train_q_id_arr, self.batch_size)
-                self.im_id_batch = random.sample(self.train_im_id_arr, self.batch_size)
-                self.ans_batch = random.sample(self.train_ans_arr, self.batch_size)
-                self.ans_type_batch = random.sample(self.train_ans_type_arr, self.batch_size)
+                ind_arr = range(len(self.train_q_arr))
+                # wheres the arr length variable sorry
+                ind_batch = random.sample(ind_arr, self.batch_size)
+                self.q_batch = [self.train_q_arr[ind] for ind in ind_batch]
+                self.q_id_batch = [self.train_q_id_arr[ind] for ind in ind_batch]
+                self.im_id_batch = [self.train_im_id_arr[ind] for ind in ind_batch]
+                self.ans_batch = [self.train_ans_arr[ind] for ind in ind_batch]
+                self.ans_type_batch = [self.train_ans_type_arr[ind] for ind in ind_batch]
         else:
             if not replace:
                 self.q_batch = self.test_q_arr[self.test_curr_index : self.test_curr_index + self.batch_size]
@@ -112,11 +115,14 @@ class Pipeline():
                 if self.train_curr_index == len(self.test_q_arr):
                     next_batch_avail = False
             else:
-                self.q_batch = random.sample(self.test_q_arr, self.batch_size)
-                self.q_id_batch = random.sample(self.test_q_id_arr, self.batch_size)
-                self.im_id_batch = random.sample(self.test_im_id_arr, self.batch_size)
-                self.ans_batch = random.sample(self.test_ans_arr, self.batch_size)
-                self.ans_type_batch = random.sample(self.test_ans_type_arr, self.batch_size)
+                ind_arr = range(len(self.test_q_arr))
+                # wheres the arr length variable sorry
+                ind_batch = random.sample(ind_arr, self.batch_size)
+                self.q_batch = [self.test_q_arr[ind] for ind in ind_batch]
+                self.q_id_batch = [self.test_q_id_arr[ind] for ind in ind_batch]
+                self.im_id_batch = [self.test_im_id_arr[ind] for ind in ind_batch]
+                self.ans_batch = [self.test_ans_arr[ind] for ind in ind_batch]
+                self.ans_type_batch = [self.test_ans_type_arr[ind] for ind in ind_batch]
         return next_batch_avail
 
     def batch_word2vec(self, discard=True):

@@ -1,2 +1,4 @@
-data
-src/VQA
+data/
+VQA/
+.vscode/
+src/__pycache__/
