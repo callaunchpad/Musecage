@@ -255,7 +255,7 @@ class Pipeline():
     #     return acc
 
 def train_FCNN(data_len=30000, vocab_size = 1000, embed_size = 300, output_size = 1000, pointwise_layer_size = 1024,
-        rnn_input_size = 1000, cnn_input_size = 4096, embed_type = "RNN"):
+        rnn_input_size = 1000, cnn_input_size = 4096, embed_type = "RNN", savedir = "model_/", verbose = True, save = True):
 
     data_arr = get_by_ques_type([])[:data_len]
     p = Pipeline(data_arr, embed_type=embed_type)
@@ -277,27 +277,32 @@ def train_FCNN(data_len=30000, vocab_size = 1000, embed_size = 300, output_size 
         train_qs, train_ims, train_ans = p.batch_fcnn()
         if len(train_qs) > 0:
             train_loss = fcnn.train_step(sess, np.array(train_ims), np.array(train_qs), np.array(train_ans))
-            print("TRAIN LOSS: %f "%(train_loss))
+            if verbose:
+                print("TRAIN LOSS: %f "%(train_loss))
             train_losses.append(train_loss)
             
         p.next_batch(train=False, replace=True)
         test_qs, test_ims, test_ans = p.batch_fcnn()
         if len(test_qs) > 0:
             test_loss = fcnn.evaluate(sess, np.array(test_ims), np.array(test_qs), np.array(test_ans))
-            print("TEST LOSS: %f "%(test_loss))
+            if verbose:
+                print("TEST LOSS: %f "%(test_loss))
             test_losses.append(test_loss)
     
-        # if train_step % 100 == 0:
-            # tf.train.Saver().save(sess, "%s_model_2/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
-            # np.savez("%s_model_2/train_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
-            # np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
+        if save:
+            if train_step % 100 == 0:
+                tf.train.Saver().save(sess, savedir+"%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
+                np.savez(savedir+"train_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
+                np.savez(savedir+"test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
         train_step += 1
 
         end_time = time.time()
-        print("time elapsed: ", end_time - start_time, " seconds")
-    # tf.train.Saver().save(sess, "%s_model_2/%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
-    # np.savez("%s_model_2/losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
-    # np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
+        if verbose:
+            print("Time elapsed: ", end_time - start_time, " seconds")
+    if save:
+        tf.train.Saver().save(sess, savedir+"%s_%d"%(embed_type, embed_type, train_step), global_step=train_step)
+        np.savez(savedir+"losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
+        np.savez(savedir+"test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
 
 def predict():
     def get_im_embedding(img_path):
@@ -338,7 +343,7 @@ def predict():
     output = fcnn.get_output(sess, im, [curr_inds], ans)
     np.savez("test_out.npz", output)
 
-def train_word2vec(data_len=30000, vocab_size = 1000, embed_size = 300):
+def train_word2vec(data_len=30000, vocab_size = 1000, embed_size = 300, verbose = True, save = True):
     data_arr = get_by_ques_type([])[:data_len]
     p = Pipeline(data_arr, embed_type=embed_type)
     p.create_split()
@@ -370,17 +375,19 @@ def train_word2vec(data_len=30000, vocab_size = 1000, embed_size = 300):
         train_losses.append(train_loss)
         test_losses.append(test_loss)
 
-        if train_step % 100 == 0:
+        if train_step % 100 == 0 and save:
             tf.train.Saver().save(sess, "saved_models/word2vec_model/word2vec_%d"%(train_step), global_step=train_step)
             np.savez("saved_models/word2vec_model/word2vec_train_losses_%d"%(train_step), np.array(train_losses))
             np.savez("saved_models/word2vec_model/word2vec_test_losses_%d"%(train_step), np.array(test_losses))
         if train_step == 2000:
             run = False
-        print("TRAIN STEP: %d | SAMPLES IN TRAIN BATCH: %d | TRAIN SAMPLES SO FAR: %d | TRAIN LOSS: %f | TEST LOSS: %f" %(train_step, batch_samples, curr_samples, train_loss, test_loss))
+        if verbose:
+            print("TRAIN STEP: %d | SAMPLES IN TRAIN BATCH: %d | TRAIN SAMPLES SO FAR: %d | TRAIN LOSS: %f | TEST LOSS: %f" %(train_step, batch_samples, curr_samples, train_loss, test_loss))
 
-    tf.train.Saver().save(sess, "saved_models/word2vec_model/word2vec_%d"%(train_step), global_step=train_step)
-    np.savez("saved_models/word2vec_model/word2vec_train_losses_%d"%(train_step), np.array(train_losses))
-    np.savez("saved_models/word2vec_model/word2vec_test_losses_%d"%(train_step), np.array(test_losses))
+    if save: 
+        tf.train.Saver().save(sess, "saved_models/word2vec_model/word2vec_%d"%(train_step), global_step=train_step)
+        np.savez("saved_models/word2vec_model/word2vec_train_losses_%d"%(train_step), np.array(train_losses))
+        np.savez("saved_models/word2vec_model/word2vec_test_losses_%d"%(train_step), np.array(test_losses))
 
 def plot(train_steps, train_losses, test_losses):
     train_steps = list(range(train_step))
