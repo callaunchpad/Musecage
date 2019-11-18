@@ -220,7 +220,6 @@ class Pipeline():
                 print("No session inputed")
                 return None
             else:
-
                 ans_type_dict = {"yes/no": [0, 0], "number": [0, 0], "other": [0, 0]}
                 while self.next_batch(train=False):
                     inp_inds, im_embeds, ans_inds = self.batch_fcnn()
@@ -258,14 +257,8 @@ output_size = 1000
 pointwise_layer_size = 1024
 rnn_input_size = 1000
 cnn_input_size = 4096
-# embed_type = "GloVe"
-<<<<<<< HEAD:pipeline.py
-# embed_type = "RNN"
+
 embed_type = "RNN"
-=======
-embed_type = "RNN"
-# embed_type = "Word2Vec"
->>>>>>> 273c4b36bb6c55ebc50580879e309f8ee62fc2a1:src/pipeline.py
 
 p = Pipeline(data_arr, embed_type=embed_type)
 p.create_split()
@@ -313,50 +306,12 @@ while p.next_batch(train=True, replace=False):
 # np.savez("%s_model_2/losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(train_losses))
 # np.savez("%s_model_2/test_losses_%s_%d.npz"%(embed_type, embed_type, train_step), np.array(test_losses))
 
-<<<<<<< HEAD:pipeline.py
 #get accuracy
 fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, embed_type=embed_type, lr=1e-4)
 with tf.Session() as sess:
     saver = tf.train.Saver()
     saver.restore(sess, "saved_RNN/RNN_749-749")
     p.get_accuracy(p.get_accuracy_dict(fcnn, sess))
-=======
-
-# def get_im_embedding(img_path):
-#     """
-#     Args:
-#         - img_path: path to image
-        
-#     Return:
-#         - (4096,) vector embedding of image
-#     """     
-#     img = image.load_img(img_path, target_size=(224, 224))
-#     x = image.img_to_array(img)
-#     x = np.expand_dims(x, axis=0)
-#     x = preprocess_input(x)
-    
-#     vision_model = VGG16(include_top=True, weights="imagenet", input_tensor=None, input_shape=None, pooling=None, classes=1000)
-#     features = vision_model.predict(x)
-#     fc2_features_extractor_model = Model(inputs=vision_model.input, outputs=vision_model.get_layer('fc2').output)
-    
-#     fc2_features = fc2_features_extractor_model.predict(x)
-#     fc2_features = fc2_features.reshape((4096,))
-    
-#     return fc2_features
-
-# test = get_im_embedding("test.png")
-# np.savez("test.npz", test)
-
-# im = [np.load("test.npz")["arr_0"]]
-# q = "what is the girl Alicia drinking"
-# curr_inds = []
-# words = q.split(" ")
-# for word in words:
-#     if word in p.top_k_q_dict:
-#         curr_inds.append(p.top_k_q_dict[word])
-# print(curr_inds)
-# ans = [0]
->>>>>>> 273c4b36bb6c55ebc50580879e309f8ee62fc2a1:src/pipeline.py
 
 # output = fcnn.get_output(sess, im, [curr_inds], ans)
 # np.savez("test_out.npz", output)
