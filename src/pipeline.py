@@ -95,9 +95,8 @@ class Pipeline():
                 if self.train_curr_index == len(self.train_q_arr):
                     next_batch_avail = False
             else:
-                #hella wrong someone fix this
+                #someone abstract this further? or not
                 ind_arr = range(len(self.train_q_arr))
-                # wheres the arr length variable sorry
                 ind_batch = random.sample(ind_arr, self.batch_size)
                 self.q_batch = [self.train_q_arr[ind] for ind in ind_batch]
                 self.q_id_batch = [self.train_q_id_arr[ind] for ind in ind_batch]
@@ -116,7 +115,6 @@ class Pipeline():
                     next_batch_avail = False
             else:
                 ind_arr = range(len(self.test_q_arr))
-                # wheres the arr length variable sorry
                 ind_batch = random.sample(ind_arr, self.batch_size)
                 self.q_batch = [self.test_q_arr[ind] for ind in ind_batch]
                 self.q_id_batch = [self.test_q_id_arr[ind] for ind in ind_batch]
