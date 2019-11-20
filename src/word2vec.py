@@ -11,14 +11,14 @@ class Word2Vec():
 	def __init__(self, vocab_size, embedding_size, name="word2vec"):
 		"""
         Creates Word2Vec neural net based on:
-            - vocab_size (int): vocabulary size, or range of input (not including batch)
-            - embedding_size (int): embedding size
+            - vocab_size (int): number of top words the model will choose a solution from
+            - embedding_size (int): dimension of word embedding
             - name (str): name of neural net
         """
+
         # initialize variables (vocab_size, embedding_size, input, labels)
 		self.vocab_size = vocab_size
 		self.embedding_size = embedding_size
-
 		self.input = tf.placeholder(dtype=tf.int32, 
 										shape=(None, 1),
 										name="input")
@@ -35,20 +35,25 @@ class Word2Vec():
 		
 		# calculate loss, optimize, and train
 		self.loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.output, labels=self.labels))
-
 		self.optimizer = tf.train.AdamOptimizer(1e-4)
 		self.train_op = self.optimizer.minimize(self.loss)
 
 	def evaluate(self, features, labels, sess):
 		"""
-        Returns the loss of the model without running the model
+        Returns the loss of the word2vec model with params:
+        	- features: array of features as input
+        	- labels: array of labels as output
+        	- sess: a tensorflow session
         """
 		loss = sess.run(self.loss, feed_dict={self.input: features, self.labels: labels})
 		return loss
 
 	def train_step(self, features, labels, sess):
 		"""
-        Returns the loss then trains one step of the model
+        Trains one step of the model with params:
+        	- features: array of features as input
+        	- labels: array of labels as output
+        	- sess: a tensorflow session
         """
 		loss, _ = sess.run([self.loss, self.train_op], 
 												feed_dict={self.input: features, self.labels: labels.astype(np.float64)})
@@ -57,9 +62,12 @@ class Word2Vec():
 	def get_output(self, features, sess):
 		"""
         Returns the output of the model
+        	- features: array of features as input
+        	- labels: array of labels as output
+        	- sess: a tensorflow session
         """
-		pred = sess.run(self.output, feed_dict={self.input: features})
-		return pred
+		output = sess.run(self.output, feed_dict={self.input: features})
+		return output
 
 	def get_embed(self):
 		"""
