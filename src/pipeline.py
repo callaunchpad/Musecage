@@ -270,10 +270,6 @@ curr_samples = 0
 train_losses = []
 test_losses = []
 
-for k, v in p.top_k_ans_dict.items():
-    if v == 0:
-        print(k)
-
 fcnn = FCNN(cnn_input_size, rnn_input_size, pointwise_layer_size, output_size, vocab_size, embed_type=embed_type, lr=1e-4)
 # w2v = Word2Vec(vocab_size + 1, embed_size)
 
