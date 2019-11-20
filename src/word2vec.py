@@ -10,11 +10,12 @@ from load_create_data import *
 class Word2Vec():
 	def __init__(self, vocab_size, embedding_size, name="word2vec"):
 		"""
-		Args:
-			vocab_size (int): Range of input (not including batch)
-			embedding_size (int): Equal to vocabulary size 
-			name (str): Name of neural net.
-		"""
+        Creates Word2Vec neural net based on:
+            - vocab_size (int): vocabulary size, or range of input (not including batch)
+            - embedding_size (int): embedding size
+            - name (str): name of neural net
+        """
+        # initialize variables (vocab_size, embedding_size, input, labels)
 		self.vocab_size = vocab_size
 		self.embedding_size = embedding_size
 
@@ -28,27 +29,41 @@ class Word2Vec():
 		self.one_hot = tf.one_hot(self.input, self.vocab_size, dtype=tf.float64)
 		self.labels = tf.stop_gradient(self.labels)
 
+		# pass one hot encoding through embedding layer
 		self.embed_layer = tf.layers.dense(self.one_hot, self.embedding_size, use_bias=False)
 		self.output = tf.layers.dense(self.embed_layer, self.vocab_size, use_bias=False)
 		
+		# calculate loss, optimize, and train
 		self.loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.output, labels=self.labels))
 
 		self.optimizer = tf.train.AdamOptimizer(1e-4)
 		self.train_op = self.optimizer.minimize(self.loss)
 
 	def evaluate(self, features, labels, sess):
+		"""
+        Returns the loss of the model without running the model
+        """
 		loss = sess.run(self.loss, feed_dict={self.input: features, self.labels: labels})
 		return loss
 
 	def train_step(self, features, labels, sess):
+		"""
+        Returns the loss then trains one step of the model
+        """
 		loss, _ = sess.run([self.loss, self.train_op], 
 												feed_dict={self.input: features, self.labels: labels.astype(np.float64)})
 		return loss
 
 	def get_output(self, features, sess):
+		"""
+        Returns the output of the model
+        """
 		pred = sess.run(self.output, feed_dict={self.input: features})
 		return pred
 
 	def get_embed(self):
+		"""
+        Returns the weights of the first fully connected layer as the word embedding
+        """
 		weights = tf.get_default_graph().get_tensor_by_name(os.path.split(self.embed_layer.name)[0] + '/kernel:0')
 		return weights
