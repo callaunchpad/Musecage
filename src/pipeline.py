@@ -25,6 +25,13 @@ from FCNN import FCNN
 
 class Pipeline():
     def __init__(self, data_arr, metric="min_k", embed_type="RNN", batch_size=64):
+        """
+        Creates pipeline based on:
+            - data_arr: array of questions, image_ids, question_ids, answers, and answer_types
+            - metric (str): metric for finding accuracy
+            - embed_type (str): type of embedding used, either RNN, Word2Vec, or GloVe
+            - batch_size (int): batch size
+        """
         self.data_arr = data_arr
         self.metric = metric
         self.batch_size = batch_size
@@ -38,7 +45,19 @@ class Pipeline():
         self.train_curr_index = 0
         self.test_curr_index = 0
         
-    def create_split(self, split_val=.8, custom_split=False, custom_train=[], custom_test=[], build_top_q_vocab=True, top_q_k=1000, build_top_ans_vocab=True, top_ans_k=1000):
+    def create_split(self, split_val=.8, custom_split=False, custom_train=[], custom_test=[], 
+            build_top_q_vocab=True, top_q_k=1000, build_top_ans_vocab=True, top_ans_k=1000):
+        """
+        Creates a training/test split with params:
+            - split_val (float): percent of training split
+            - custom_split (boolean): if you want to make a custom split or not
+            - custom_train (arr): if custom_split, then use this custom training set
+            - custom_test (arr): if custom_split, then use this custom testing set
+            - build_top_q_vocab (boolean):
+            - top_q_k (int): top k of questions
+            - build_top_ans_vocab (boolean): if top k answers should be built
+            - top_ans_k (int): top k answers
+        """
         if custom_split:
             self.train_data = custom_train
             self.test_data = custom_test
@@ -85,6 +104,11 @@ class Pipeline():
                 self.top_k_ans_dict_reverse[ind] = top_k_words[ind][0]
 
     def next_batch(self, train=True, replace=False):
+        """
+        Creates the next batch with params:
+            - train (boolean): if this is a training batch or not
+            - replace (boolean): if batch should be created with replacement or not
+        """
         next_batch_avail = True
         if train:
             if not replace:
@@ -97,7 +121,6 @@ class Pipeline():
                 if self.train_curr_index >= len(self.train_q_arr):
                     next_batch_avail = False
             else:
-                #someone abstract this further? or not
                 ind_arr = range(len(self.train_q_arr))
                 ind_batch = random.sample(ind_arr, self.batch_size)
                 self.q_batch = [self.train_q_arr[ind] for ind in ind_batch]
@@ -127,7 +150,10 @@ class Pipeline():
 
     def batch_word2vec(self, discard=True):
         """
-        if discard is True, throw away questions in which all words are not in top_k_q_dict (51474 out of 60k questions have all words within top 1k)
+        Creates the input indices and output indices for word2vec
+            - discard (boolean): if discard is True, throw away questions in 
+                    which all words are not in top_k_q_dict 
+                    (51474 out of 60k questions have all words within top 1k)
         """
         inp_inds = []
         out_inds = []
@@ -152,7 +178,10 @@ class Pipeline():
 
     def batch_fcnn(self, discard=True):
         """
-        if discard is True, throw away questions in which all words are not in top_k_q_dict (51474 out of 60k questions have all words within top 1k)
+        Creates the input indices and output indices for fcnn
+            - discard (boolean): if discard is True, throw away questions in 
+                    which all words are not in top_k_q_dict 
+                    (51474 out of 60k questions have all words within top 1k)
         """
         inp_inds = []
         im_embeds = []
