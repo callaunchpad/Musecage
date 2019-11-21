@@ -134,7 +134,7 @@ class Pipeline():
                 self.q_id_batch = self.test_q_id_arr[self.test_curr_index : self.test_curr_index + self.batch_size]
                 self.im_id_batch = self.test_im_id_arr[self.test_curr_index : self.test_curr_index + self.batch_size]
                 self.ans_batch = self.test_ans_arr[self.test_curr_index : self.test_curr_index + self.batch_size]
-                self.ans_type_batch = self.test_ans_type_arr[self.train_curr_index : self.train_curr_index + self.batch_size]
+                self.ans_type_batch = self.test_ans_type_arr[self.test_curr_index : self.test_curr_index + self.batch_size]
                 self.test_curr_index += self.batch_size
                 if self.test_curr_index >= len(self.test_q_arr):
                     next_batch_avail = False
@@ -250,32 +250,47 @@ class Pipeline():
         return inp_inds, im_embeds, ans_inds, ans_types, all_ans
 
 
-    def get_accuracy_dict(self, model, sess=None, k=4):
-        if type(model) is KNNModel:
-            model.train(self.train_q_arr, self.train_q_id_arr, self.train_im_id_arr, self.train_ans_arr)
-            self.preds = model.predict(self.test_q_arr, self.test_q_id_arr, self.test_im_id_arr)
-        elif type(model) is FCNN:
-            if not sess:
-                print("No session inputed")
-                return None
-            else:
-                ans_type_dict = {"yes/no": [0, 0], "number": [0, 0], "other": [0, 0]}
-                test_step = 0
-                while self.next_batch(train=False):
-                    print("TEST STEP: %d"%test_step)
-                    inp_inds, im_embeds, ans_inds, ans_types, all_ans = self.batch_fcnn()
-                    for i in range(len(inp_inds)):
-                        ans = [0]
-                        pred_output = sess.run(model.output, feed_dict={model.cnn_in: [im_embeds[i]], model.q_batch: [inp_inds[i]]})
-                        ans_type_dict[ans_types[i]][1] += 1
-                        pred_value = np.argmax(pred_output)
-                        c = Counter(all_ans[i])
-                        if c[self.top_k_ans_dict_reverse[pred_value]] >= 3:
-                            ans_type_dict[ans_types[i]][0] += 1
-                    test_step += 1
-                return ans_type_dict
+    def get_accuracy_dict(self, model, sess=None):
+        """
+        Outputs an accuracy dictionary that splits accuracies into the three different answer types: 
+        "yes/no", "number", and "other."
+
+        Args:
+            - model: FCNN model
+            - sess: tf session
+        Return:
+            - ans_type_dict: accruacy dictionary
+
+        """
+        if not sess:
+            print("No session inputed")
+            return None
+        else:
+            ans_type_dict = {"yes/no": [0, 0], "number": [0, 0], "other": [0, 0]}
+            test_step = 0
+            while self.next_batch(train=False):
+                print("TEST STEP: %d"%test_step)
+                inp_inds, im_embeds, ans_inds, ans_types, all_ans = self.batch_fcnn()
+                for i in range(len(inp_inds)):
+                    ans = [0]
+                    pred_output = sess.run(model.output, feed_dict={model.cnn_in: [im_embeds[i]], model.q_batch: [inp_inds[i]]})
+                    ans_type_dict[ans_types[i]][1] += 1
+                    pred_value = np.argmax(pred_output)
+                    c = Counter(all_ans[i])
+                    if c[self.top_k_ans_dict_reverse[pred_value]] >= 3:
+                        ans_type_dict[ans_types[i]][0] += 1
+                test_step += 1
+            return ans_type_dict
 
     def get_accuracy(self, ans_type_dict):
+        """
+        Takes in accuracy dictionary from get_accurracy_dict and prints accuracies for each answer type
+
+        Args:
+            - ans_type_dict: accuracy dictionary (output from get_accurracy_dict)
+        Returns:
+            - prints accuracies, returns None
+        """
         print("yes/no accuracy: ", ans_type_dict["yes/no"][0]/ans_type_dict["yes/no"][1])
         print("number accuracy: ", ans_type_dict["number"][0]/ans_type_dict["number"][1])
         print("other accuracy: ", ans_type_dict["other"][0]/ans_type_dict["other"][1])
@@ -295,16 +310,15 @@ class Pipeline():
     #     return acc
 
 #get accuracy
-embed_type = "RNN"
-data_len=30000
-data_arr = get_by_ques_type([])[:data_len]
-fcnn = FCNN(cnn_input_size = 4096, pointwise_layer_size = 1024, output_size = 1000, vocab_size = 1000, embed_type=embed_type, lr=1e-4)
-p = Pipeline(data_arr, embed_type=embed_type)
-p.create_split()
-with tf.Session() as sess:
-    saver = tf.train.Saver()
-    saver.restore(sess, "../saved_models/saved_RNN/RNN_749-749")
-    p.get_accuracy(p.get_accuracy_dict(fcnn, sess))
+def get_model_accuracy(embed_type = "RNN", data_len = 30000, split_val = 0.99):
+    data_arr = get_by_ques_type([])[:data_len]
+    fcnn = FCNN(cnn_input_size = 4096, pointwise_layer_size = 1024, output_size = 1000, vocab_size = 1000, embed_type=embed_type, lr=1e-4)
+    p = Pipeline(data_arr, embed_type=embed_type)
+    p.create_split(split_val = split_val)
+    with tf.Session() as sess:
+        saver = tf.train.Saver()
+        saver.restore(sess, "../saved_models/saved_RNN/RNN_749-749")
+        p.get_accuracy(p.get_accuracy_dict(fcnn, sess))
 
 def train_FCNN(data_len=30000, vocab_size = 1000, embed_size = 300, output_size = 1000, pointwise_layer_size = 1024,
         cnn_input_size = 4096, embed_type = "RNN", savedir = "model_/", verbose = True, save = True):
