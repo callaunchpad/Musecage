@@ -275,6 +275,8 @@ class Pipeline():
                     ans = [0]
                     pred_output = sess.run(model.output, feed_dict={model.cnn_in: [im_embeds[i]], model.q_batch: [inp_inds[i]]})
                     ans_type_dict[ans_types[i]][1] += 1
+                    print(ans_types[i])
+                    print(all_ans[i])
                     pred_value = np.argmax(pred_output)
                     c = Counter(all_ans[i])
                     if c[self.top_k_ans_dict_reverse[pred_value]] >= 3:
