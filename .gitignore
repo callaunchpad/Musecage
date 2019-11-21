@@ -4,3 +4,4 @@ VQA/
 src/__pycache__/
 saved_models/
 .DS_Store
+env/

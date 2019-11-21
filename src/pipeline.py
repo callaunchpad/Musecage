@@ -40,7 +40,7 @@ class Pipeline():
         if self.embed_type == "GloVe":
             self.embed_index = load_glove()
         elif self.embed_type == "Word2Vec":
-            self.embed_mat = np.load("saved_models/word2vec_model/embed_mat_2000.npz")["arr_0"]
+            self.embed_mat = np.load("../saved_models/word2vec_model/embed_mat_2000.npz")["arr_0"]
 
         self.train_curr_index = 0
         self.test_curr_index = 0
@@ -275,8 +275,6 @@ class Pipeline():
                     ans = [0]
                     pred_output = sess.run(model.output, feed_dict={model.cnn_in: [im_embeds[i]], model.q_batch: [inp_inds[i]]})
                     ans_type_dict[ans_types[i]][1] += 1
-                    print(ans_types[i])
-                    print(all_ans[i])
                     pred_value = np.argmax(pred_output)
                     c = Counter(all_ans[i])
                     if c[self.top_k_ans_dict_reverse[pred_value]] >= 3:
@@ -312,14 +310,21 @@ class Pipeline():
     #     return acc
 
 #get accuracy
-def get_model_accuracy(embed_type = "RNN", data_len = 30000, split_val = 0.99):
+def get_model_accuracy(embed_type = "RNN", save_path = "../saved_models/RNN_model/RNN_749-749", data_len = 30000, split_val = 0.9):
+    """
+    Gets the accuracy for the given model:
+        - embed_type: question embedding model (RNN, GloVe, or Word2Vec)
+        - save_path: save path for model
+        - data_len: length of question data used
+        - split_val: train/test split ratio
+    """
     data_arr = get_by_ques_type([])[:data_len]
     fcnn = FCNN(cnn_input_size = 4096, pointwise_layer_size = 1024, output_size = 1000, vocab_size = 1000, embed_type=embed_type, lr=1e-4)
     p = Pipeline(data_arr, embed_type=embed_type)
     p.create_split(split_val = split_val)
     with tf.Session() as sess:
         saver = tf.train.Saver()
-        saver.restore(sess, "../saved_models/saved_RNN/RNN_749-749")
+        saver.restore(sess, save_path)
         p.get_accuracy(p.get_accuracy_dict(fcnn, sess))
 
 def train_FCNN(data_len=30000, vocab_size = 1000, embed_size = 300, output_size = 1000, pointwise_layer_size = 1024,
