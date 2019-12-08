@@ -5,9 +5,9 @@ from rnn_model import RNNModel
 
 class FCNN:
 	def __init__(self, cnn_input_size, pointwise_layer_size, output_size, vocab_size, 
-					glove_embed_size=300, word2vec_embed_size=300, dropout=0.2, net_struct={'h1': 1000}, 
-			        activation_fn=tf.nn.relu, embed_type="RNN",
-			        loss_fn=tf.nn.sparse_softmax_cross_entropy_with_logits, lr=1e-3):
+					glove_embed_size=300, word2vec_embed_size=300, dropout=0.3, net_struct={'h1': 1000}, 
+			        activation_fn=tf.nn.relu, embed_type="RNN", loss_fn=tf.nn.sparse_softmax_cross_entropy_with_logits, 
+			        start_lr=1e-3, boundaries=[200, 400, 600, 2000, 4000], factors=[1.0, 0.5, 0.1, 0.01, 0.001, 0.0001]):
 		"""
         Creates FCNNModel based on:
             - cnn_input_size: dimension of image embedding
@@ -35,7 +35,9 @@ class FCNN:
 		self.activation_fn = activation_fn
 		self.embed_type = embed_type
 		self.loss_fn = loss_fn
-		self.lr = lr 
+		self.start_lr = start_lr
+		self.boundaries = boundaries
+		self.values = list(self.start_lr * np.array(factors))
 
 		self.build_model()
 
@@ -57,7 +59,6 @@ class FCNN:
 		if self.embed_type == "RNN":
 			self.q_batch = tf.stop_gradient(self.q_batch)
 			self.one_hot = tf.one_hot(self.q_batch, self.vocab_size, dtype=tf.float64)
-
 			rnn = RNNModel(self.one_hot)
 			self.embed_output = rnn.output
 			self.embed_output = tf.nn.l2_normalize(self.embed_output)
@@ -71,13 +72,13 @@ class FCNN:
 		self.q_dense = tf.layers.dense(self.embed_output, self.pointwise_layer_size, activation=self.activation_fn, name='rnn_in_layer')
 		self.pointwise_layer = tf.multiply(self.cnn_dense, self.q_dense, name="pointwise_layer")
 
-		self.pointwise_layer = tf.nn.dropout(self.pointwise_layer, self.dropout)
+		self.pointwise_layer = tf.layers.dropout(self.pointwise_layer, self.dropout)
 		self.prev_layer = self.pointwise_layer
 		for layer_name, layer_nodes in self.net_struct.items():
 			self.prev_layer = tf.layers.dense(self.prev_layer, layer_nodes, 
 										activation=self.activation_fn, 
 										name=layer_name)
-			self.prev_layer = tf.nn.dropout(self.prev_layer, self.dropout)
+			self.prev_layer = tf.layers.dropout(self.prev_layer, self.dropout)
 
 		self.output = tf.layers.dense(self.prev_layer, self.output_size, 
 										activation=self.activation_fn,
@@ -85,7 +86,13 @@ class FCNN:
 
 		self.labels = tf.stop_gradient(self.labels)
 		self.loss = tf.reduce_mean(self.loss_fn(labels=self.labels, logits=self.output))
-		self.train_op = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss)
+		# self.train_op = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss)
+		self.global_step = tf.Variable(0, trainable=False)
+		self.lr = tf.train.piecewise_constant(self.global_step, self.boundaries, self.values)
+		self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
+		self.grads_and_vars = self.optimizer.compute_gradients(self.loss)
+		self.train_op = self.optimizer.apply_gradients(self.grads_and_vars, global_step=self.global_step)
+
 
 	def evaluate(self, sess, cnn_batch, q_batch, label_batch):
 		"""
