@@ -70,6 +70,7 @@ save_freq=100
 savedir="../model_/"
 verbose=True
 verbose_freq=10
+data_len = 90000
 
 data_arr = (get_by_ques_type([], train=True) + get_by_ques_type([], train=False))[:data_len]
 
