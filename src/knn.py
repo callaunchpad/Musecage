@@ -5,10 +5,6 @@ import sys
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras.applications.vgg16 import VGG16
-from tensorflow.keras.preprocessing import image
-from tensorflow.keras.applications.vgg16 import preprocess_input
-from tensorflow.keras.models import Model
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics.pairwise import cosine_similarity
 from collections import Counter
@@ -16,6 +12,8 @@ from collections import Counter
 from load_create_data import *
 
 class KNNModel():
+
+    #fix knn code to work with pipeline there are broken things in here for running this independently
 
     def __init__(self, k, q_embed_type="glove", glove_embed_dim=300, discard=False, output_n=1, verbose=True, pred_verb_num=5):
         """
@@ -90,27 +88,6 @@ class KNNModel():
 
         return preds
 
-    def get_embedding(self, img_path):
-        """
-        Args:
-            - img_path: path to image
-            
-        Return:
-            - (4096,) vector embedding of image
-        """     
-        img = image.load_img(img_path, target_size=(224, 224))
-        x = image.img_to_array(img)
-        x = np.expand_dims(x, axis=0)
-        x = preprocess_input(x)
-        
-        features = self.vision_model.predict(x)
-        fc2_features_extractor_model = Model(inputs=self.vision_model.input, outputs=self.vision_model.get_layer('fc2').output)
-        
-        fc2_features = fc2_features_extractor_model.predict(x)
-        fc2_features = fc2_features.reshape((4096,))
-        
-        return fc2_features
-
     def get_cos_sims(self, target_img_loc, img_loc_list):
         """
         Args:
@@ -120,8 +97,8 @@ class KNNModel():
         Returns:
             - ndarray containing cosine similarity between target image and each image in img_loc_list
         """
-        X = self.get_embedding(target_img_loc).reshape((1, 4096))
-        Y = np.array([self.get_embedding(img) for img in img_loc_list])
+        X = get_embedding(target_img_loc).reshape((1, 4096), self.vision_model)
+        Y = np.array([get_embedding(img, self.vision_model) for img in img_loc_list])
         
         return cosine_similarity(X, Y, dense_output=True)
 
