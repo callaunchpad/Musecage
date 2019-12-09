@@ -20,6 +20,7 @@ from knn import KNNModel
 from word2vec import Word2Vec
 from rnn_model import RNNModel
 from FCNN import FCNN
+from attention_rnn import AttentionRNN
 
 #comment what different lists mean in create_split and next_batch
 
@@ -261,6 +262,70 @@ class Pipeline():
 
         return inp_inds, im_embeds, ans_inds, ans_types, all_ans
 
+    def batch_attention(self, discard=True):
+        """
+        Creates the input indices and output indices for fcnn
+            - discard (boolean): if discard is True, throw away questions in 
+                    which all words are not in top_k_q_dict 
+                    (51474 out of 60k questions have all words within top 1k)
+        """
+        inp_inds = []
+        im_embeds = []
+        ans_inds = []
+        ans_types = []
+        all_ans = []
+
+        max_len = max([len(q) for q in self.q_batch])
+
+        if discard:
+            for ind in range(len(self.q_batch)):
+                q = self.q_batch[ind]
+                curr_inds = []
+                if self.embed_type == "Word2Vec":
+                    words = q.split(" ")
+                    all_found = True
+                    for word in words:
+                        if word in self.top_k_q_dict:
+                            word_embed = self.embed_mat[self.top_k_q_dict[word]]
+                            curr_inds.append(word_embed)
+                        else:
+                            all_found = False
+                            break
+            
+                found_im = True
+                try:
+                    fc2_features = np.load(img_id_to_embed_path(self.im_id_batch[ind], train=True))["arr_0"]
+                except:
+                    found_im = False
+                if not found_im:
+                    try:
+                        fc2_features = np.load(img_id_to_embed_path(self.im_id_batch[ind], train=False))["arr_0"]
+                        found_im = True
+                    except:
+                        pass   
+
+                ans = self.ans_batch[ind]
+                c = Counter(ans)
+                most_common_ans = c.most_common(1)[0][0]
+                found_ans = True
+                if most_common_ans not in self.top_k_ans_dict:
+                    found_ans = False
+
+                if all_found and found_ans and found_im:
+                    if self.embed_type == "Word2Vec":
+                        inp_inds.append(curr_inds)
+                    im_embeds.append(np.array(fc2_features))
+                    ans_inds.append(self.top_k_ans_dict[most_common_ans])
+                    ans_types.append(self.ans_type_batch[ind])
+                    all_ans.append(ans)
+        else:
+            # to be implemented
+            pass
+        max_len = max([len(l) for l in inp_inds])
+        inp_inds = [l+[np.zeros(300)]*(max_len-len(l)) for l in inp_inds]
+        inp_inds = np.array(inp_inds)
+        return inp_inds, im_embeds, ans_inds, ans_types, all_ans
+
 
     def get_accuracy_dict(self, model, sess=None):
         """
@@ -311,7 +376,8 @@ class Pipeline():
         total = ans_type_dict["yes/no"][1] + ans_type_dict["number"][1] + ans_type_dict["other"][1]
         print("total accuracy: ", total_correct/total)
 
-def get_model_accuracy(embed_type="RNN", save_path="../saved_models/RNN_model/RNN_749-749", data_len=90000, split_val=0.8):
+def get_model_accuracy(embed_type="RNN", save_path="../saved_models/RNN_model/RNN_749-749", data_len=90000, split_val=.8, net_struct={'h1':1000},
+                        cnn_input_size=4096, start_lr=1e-4, pointwise_layer_size=1024, output_size=1000, vocab_size=1000):
     """
     Gets the accuracy for the given model:
         - embed_type: question embedding model (RNN, GloVe, or Word2Vec)
@@ -320,9 +386,9 @@ def get_model_accuracy(embed_type="RNN", save_path="../saved_models/RNN_model/RN
         - split_val: train/test split ratio
     """
     data_arr = (get_by_ques_type([], train=True) + get_by_ques_type([], train=False))[:data_len]
-    fcnn = FCNN(cnn_input_size = 4096, pointwise_layer_size = 1024, output_size = 1000, vocab_size = 1000, embed_type=embed_type, lr=1e-4)
+    fcnn = FCNN(cnn_input_size, pointwise_layer_size, output_size, vocab_size, net_struct=net_struct, embed_type=embed_type, start_lr=start_lr)
     p = Pipeline(data_arr, embed_type=embed_type)
-    p.create_split(split_val = split_val)
+    p.create_split(split_val=split_val)
     with tf.Session() as sess:
         saver = tf.train.Saver()
         saver.restore(sess, save_path)
@@ -376,6 +442,74 @@ def train_FCNN(data_len=90000, vocab_size=1000, embed_size=300, output_size=1000
             test_qs, test_ims, test_ans, ans_types, all_ans = p.batch_fcnn()
             if len(test_qs) > 0:
                 test_loss = fcnn.evaluate(sess, np.array(test_ims), np.array(test_qs), np.array(test_ans))
+                test_losses.append(test_loss)
+        
+            if train_step % save_freq == 0 and save:
+                tf.train.Saver().save(sess, savedir+"%s_%d"%(embed_type, train_step), global_step=train_step)
+                np.savez(savedir+"train_losses_%s_%d.npz"%(embed_type, train_step), np.array(train_losses))
+                np.savez(savedir+"test_losses_%s_%d.npz"%(embed_type, train_step), np.array(test_losses))
+
+            end_time = time.time()
+            if train_step % verbose_freq == 0 and verbose:
+                print("TRAIN STEP: %d | SAMPLES IN TRAIN BATCH: %d | TRAIN SAMPLES SO FAR: %d | TRAIN LOSS: %f | TEST LOSS: %f" %(train_step, batch_samples, curr_samples, train_loss, test_loss))
+                print("Time elapsed: ", end_time - start_time, " seconds")
+        if verbose:
+            print("********************FINISHED EPOCH %d********************"%(epoch))
+        p.reset_batch(train=True)
+
+    if save:
+        tf.train.Saver().save(sess, savedir+"%s_%d"%(embed_type, train_step), global_step=train_step)
+        np.savez(savedir+"train_losses_%s_%d.npz"%(embed_type, train_step), np.array(train_losses))
+        np.savez(savedir+"test_losses_%s_%d.npz"%(embed_type, train_step), np.array(test_losses))
+
+def train_attention_rnn(data_len=90000, embed_size=300, output_size=1000, pointwise_layer_size=1024, net_struct={'h1':1000},
+        cnn_input_size=4096, embed_type="Word2Vec", start_lr=1e-4, num_epochs=1, savedir="../model_/", verbose=True, verbose_freq=10, save=True, save_freq=100):
+    """
+    Trains the Attention model based on:
+        - data_len: number of data points to train and test on
+        - vocab_size: number of top words the model will choose a solution from
+        - pointwise_layer_size: dimension of the pointwise layer
+        - output_size: dimension of the output layer
+        - embed_size: dimension of the question embedding
+        - cnn_input_size: dimention of the image embedding
+        - embed_type: type of question embedding used; can be "Glove", "Word2Vec", or "RNN"
+        - savedir: path of directory to save the trained models in
+        - verbose: (boolean) prints out train and test losses every step
+        - save: (boolean) saves model in ./savedir/ 
+    """
+    data_arr = (get_by_ques_type([], train=True) + get_by_ques_type([], train=False))[:data_len]
+
+    p = Pipeline(data_arr, embed_type=embed_type)
+    p.create_split()
+
+    train_step = 0
+    curr_samples = 0
+
+    train_losses = []
+    test_losses = []
+
+    attention = AttentionRNN(cnn_input_size, output_size, embed_size=embed_size, net_struct=net_struct, start_lr=start_lr)
+
+    sess = tf.Session()
+    tf.global_variables_initializer().run(session=sess)
+
+    for epoch in range(num_epochs):
+        while p.next_batch(train=True, replace=False):
+            start_time = time.time()
+            train_qs, train_ims, train_ans, ans_types, all_ans = p.batch_attention()
+
+            train_step += 1
+            batch_samples = len(train_qs)
+            curr_samples += batch_samples
+
+            if len(train_qs) > 0:
+                train_loss = attention.train_step(sess, np.array(train_ims), np.array(train_qs), np.array(train_ans))
+                train_losses.append(train_loss)
+                
+            p.next_batch(train=False, replace=True)
+            test_qs, test_ims, test_ans, ans_types, all_ans = p.batch_attention()
+            if len(test_qs) > 0:
+                test_loss = attention.evaluate(sess, np.array(test_ims), np.array(test_qs), np.array(test_ans))
                 test_losses.append(test_loss)
         
             if train_step % save_freq == 0 and save:
@@ -500,5 +634,6 @@ def plot(train_steps, train_losses, test_losses):
 #         np.savez(path+str(im_id), emb)
 
 # train_FCNN(pointwise_layer_size=1024, net_struct={'h1':1000, 'h2':1000, 'h3':1000, 'h4':1000}, savedir="../model_1_4h_adap_lr_5ep_more_data/", num_epochs=5)
-
+# get_model_accuracy(pointwise_layer_size=1024, net_struct={'h1':1000, 'h2':1000, 'h3':1000, 'h4':1000}, save_path="../saved_models/model_1_4h_adap_lr_5ep_more_data/RNN_5620-5620")
+train_attention_rnn()
 #when we train fix loading for npz files
