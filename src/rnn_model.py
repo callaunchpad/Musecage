@@ -9,9 +9,9 @@ class RNNModel():
 		self.embed_size = embed_size
 		self.rnn_input = rnn_input
 		self.dense = dense
-		self.output = self._build_graph()
+		self.output = self.build_graph()
 
-	def _build_graph(self):
+	def build_graph(self):
 		rnn_cell = rnn.MultiRNNCell([rnn.BasicLSTMCell(self.n_hidden), rnn.BasicLSTMCell(self.n_hidden)])
 		if self.dense:
 			self.rnn_input = tf.layers.dense(self.rnn_input, self.embed_size, activation=tf.tanh)
