@@ -7,7 +7,7 @@ import time
 
 class QTypeClassifier():
 
-	def __init__ (self, n_hidden=512, embed_size=300, dense_size = 512, lr=1e-3, loss_fn=tf.nn.sparse_softmax_cross_entropy_with_logits): 
+	def __init__ (self, n_hidden=512, embed_size=300, dense_size = 3, lr=1e-3, loss_fn=tf.nn.sparse_softmax_cross_entropy_with_logits): 
 		self.n_hidden = n_hidden
 		self.embed_size = embed_size
 		self.dense_size = dense_size
@@ -16,16 +16,16 @@ class QTypeClassifier():
 		self._build_graph()
 
 	def _build_graph(self):
-		self.q_batch = tf.placeholder(tf.int32, [None, None], name="q_batch")
+		self.q_batch = tf.placeholder(tf.float64, [None, None, self.embed_size])
 		self.q_batch = tf.stop_gradient(self.q_batch)
 		self.rnn_cell = rnn.MultiRNNCell([rnn.BasicLSTMCell(self.n_hidden), rnn.BasicLSTMCell(self.n_hidden)])
-		self.embed_input = tf.layers.dense(self.q_batch, self.embed_size, activation=tf.tanh)
+		self.embed_input = tf.layers.dense(self.q_batch, self.embed_size, activation=tf.tanh, name="embed_input")
 		_, states = tf.nn.dynamic_rnn(self.rnn_cell, self.embed_input, dtype=tf.float64)
 
 		self.q_embedding = tf.concat([states[1][0], states[1][1]], axis=1)
-
-		self.output = tf.layers.dense(self.q_embedding, self.dense_size)
-
+		print(self.q_embedding.shape)
+		self.output = tf.layers.dense(self.q_embedding, self.dense_size, name="output")
+		print(self.output.shape)
 		self.labels = tf.placeholder(tf.int32, [None], name="labels")
 		self.labels = tf.stop_gradient(self.labels)
 		self.loss = tf.reduce_mean(self.loss_fn(labels=self.labels, logits=self.output))
@@ -70,6 +70,7 @@ save_freq=100
 savedir="../model_/"
 verbose=True
 verbose_freq=10
+data_len = 90000
 
 data_arr = (get_by_ques_type([], train=True) + get_by_ques_type([], train=False))[:data_len]
 
@@ -82,7 +83,7 @@ curr_samples = 0
 train_losses = []
 test_losses = []
 
-classifier = QTypeClassifier(n_hidden=512, embed_size=300, dense_size = 512)
+classifier = QTypeClassifier(n_hidden=512, embed_size=300, dense_size = 3)
 
 sess = tf.Session()
 tf.global_variables_initializer().run(session=sess)
@@ -95,6 +96,7 @@ for epoch in range(num_epochs):
 		ans_type_dict = {"yes/no": 0, "number": 1, "other": 2}
 		ans_types = [ans_type_dict[i] for i in ans_types]
 
+
 		train_step += 1
 		batch_samples = len(train_qs)
 		curr_samples += batch_samples
@@ -105,6 +107,7 @@ for epoch in range(num_epochs):
 			
 		p.next_batch(train=False, replace=True)
 		test_qs, test_ims, test_ans, ans_types, all_ans = p.batch_fcnn()
+
 		if len(test_qs) > 0:
 			test_loss = classifier.evaluate(sess,np.array(test_qs), np.array(ans_types))
 			test_losses.append(test_loss)
