@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow.contrib import rnn
 import numpy as np
-from pipeline import *
+from pipeline import Pipeline
 from load_create_data import *
 import time
 
@@ -23,7 +23,6 @@ class QTypeClassifier():
 		_, states = tf.nn.dynamic_rnn(self.rnn_cell, self.embed_input, dtype=tf.float64)
 
 		self.q_embedding = tf.concat([states[1][0], states[1][1]], axis=1)
-		print(self.q_embedding.shape)
 		self.output = tf.layers.dense(self.q_embedding, self.dense_size, name="output")
 		print(self.output.shape)
 		self.labels = tf.placeholder(tf.int32, [None], name="labels")
@@ -72,10 +71,12 @@ verbose=True
 verbose_freq=10
 data_len = 90000
 
+
 data_arr = (get_by_ques_type([], train=True) + get_by_ques_type([], train=False))[:data_len]
 
 p = Pipeline(data_arr, embed_type = "Word2Vec")
 p.create_split()
+
 
 train_step = 0
 curr_samples = 0
@@ -85,17 +86,18 @@ test_losses = []
 
 classifier = QTypeClassifier(n_hidden=512, embed_size=300, dense_size = 3)
 
+
 sess = tf.Session()
 tf.global_variables_initializer().run(session=sess)
 
 for epoch in range(num_epochs):
 	while p.next_batch(train=True, replace=False):
 		start_time = time.time()
-		train_qs, train_ims, train_ans, ans_types, all_ans = p.batch_fcnn()
-
+		train_qs, train_ims, train_ans, ans_types, all_ans = p.batch_attention()
 		ans_type_dict = {"yes/no": 0, "number": 1, "other": 2}
 		ans_types = [ans_type_dict[i] for i in ans_types]
 
+		# print("shapes: ", np.array(train_qs).shape, np.array(ans_types).shape)
 
 		train_step += 1
 		batch_samples = len(train_qs)
@@ -106,7 +108,10 @@ for epoch in range(num_epochs):
 			train_losses.append(train_loss)
 			
 		p.next_batch(train=False, replace=True)
-		test_qs, test_ims, test_ans, ans_types, all_ans = p.batch_fcnn()
+		test_qs, test_ims, test_ans, ans_types, all_ans = p.batch_attention()
+		
+		ans_type_dict = {"yes/no": 0, "number": 1, "other": 2}
+		ans_types = [ans_type_dict[i] for i in ans_types]
 
 		if len(test_qs) > 0:
 			test_loss = classifier.evaluate(sess,np.array(test_qs), np.array(ans_types))
