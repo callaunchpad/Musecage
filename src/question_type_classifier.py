@@ -16,15 +16,16 @@ class QTypeClassifier():
 		self._build_graph()
 
 	def _build_graph(self):
-		self.q_batch = tf.placeholder(tf.int32, [None, None], name="q_batch")
+		self.q_batch = tf.placeholder(tf.float64, [None, None, self.embed_size])
 		self.q_batch = tf.stop_gradient(self.q_batch)
 		self.rnn_cell = rnn.MultiRNNCell([rnn.BasicLSTMCell(self.n_hidden), rnn.BasicLSTMCell(self.n_hidden)])
-		self.embed_input = tf.layers.dense(self.q_batch, self.embed_size, activation=tf.tanh)
+		self.embed_input = tf.layers.dense(self.q_batch, self.embed_size, activation=tf.tanh, name="embed_input")
+		print(self.embed_input.shape)
 		_, states = tf.nn.dynamic_rnn(self.rnn_cell, self.embed_input, dtype=tf.float64)
 
 		self.q_embedding = tf.concat([states[1][0], states[1][1]], axis=1)
 
-		self.output = tf.layers.dense(self.q_embedding, self.dense_size)
+		self.output = tf.layers.dense(self.q_embedding, self.dense_size, name="output")
 
 		self.labels = tf.placeholder(tf.int32, [None], name="labels")
 		self.labels = tf.stop_gradient(self.labels)
@@ -92,6 +93,7 @@ for epoch in range(num_epochs):
 	while p.next_batch(train=True, replace=False):
 		start_time = time.time()
 		train_qs, train_ims, train_ans, ans_types, all_ans = p.batch_fcnn()
+		train_qs = [train_qs]
 
 		ans_type_dict = {"yes/no": 0, "number": 1, "other": 2}
 		ans_types = [ans_type_dict[i] for i in ans_types]
@@ -106,6 +108,7 @@ for epoch in range(num_epochs):
 			
 		p.next_batch(train=False, replace=True)
 		test_qs, test_ims, test_ans, ans_types, all_ans = p.batch_fcnn()
+		test_qs = [test_qs]
 		if len(test_qs) > 0:
 			test_loss = classifier.evaluate(sess,np.array(test_qs), np.array(ans_types))
 			test_losses.append(test_loss)
