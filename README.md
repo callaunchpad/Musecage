@@ -1,6 +1,6 @@
-# Musecage: Visual Question Answering Model
+# Musecage Visual Question Answering Model
 
-## Overview: 
+## Overview 
 The goal of this project was to be able to build a network that would be able to answer a question about a given image. 
 
 Examples of some images and answers are shown here. 
@@ -8,10 +8,7 @@ Examples of some images and answers are shown here.
 
 [Figure 1] We used the MSCOCO dataset for our model. The scenes are simple, and the questions below were generated from asking many people to write a question that is required to use the picture. The images with the questions were then given to others to answer the questions. We trained our model on the image, question pairs as our input, and the answers as our output.
 
-This task can be broken down into three parts: 
-1. image embeddings
-2. word embeddings
-3. recurrent attention
+This task can be broken down into three parts: *image embeddings, word embeddings, and recurrent attention*.
 
 ## Baseline Model 
 The first model we tried is relatively simple. We use the [K-Nearest Neighbors](https://towardsdatascience.com/machine-learning-basics-with-the-k-nearest-neighbors-algorithm-6a6e71d01761) algorithm to find the most suitable answer to a given image, question pair in the following process. Using the question embeddings we find the K-nearest questions to the test question. From this set of K-questions, each of which map to an image, find the image embedding which is closest to the test image. The image closest to our image and its associated question give us our predicted answer (i.e. the most common answer given to that question paired with that image). This model achieved relatively poor results: Yes/No accuracy: 57.33%, Overall: 5.267%. Since this algorithm is very computationally expensive to train we didn’t train it on much data, and since KNN performance is highly dependent on the diversity of the data you train it on, training the KNN on more data could increase its performance.
@@ -26,7 +23,7 @@ The first thing we needed to do is to figure out how to represent our words.Word
 
 GloVe embeddings incorporate global context by looking at all the words in a dictionary and keeping a co-occurrence matrix. The matrix contains semantic relationships formed from learning the likelihood of the next words to appear based on the previous words. 
 
-We are using [pre-trained word vectors] (https://nlp.stanford.edu/projects/glove/) (400k words, uncased, 50-300d vectors) for our question embeddings. To do so, we first format all our questions. After finding the word vectors for every word in the question, we add them up element-wise to form our question embedding. 
+We are using [pre-trained word vectors](https://nlp.stanford.edu/projects/glove/) (400k words, uncased, 50-300d vectors) for our question embeddings. To do so, we first format all our questions. After finding the word vectors for every word in the question, we add them up element-wise to form our question embedding. 
 
 Since GloVe vectors encode the frequency distribution of which words occur near them, the embeddings have a concept of distance to determine similarity between questions. This way, the closer the Euclidean distance between two question embeddings, the more similar the questions are.
 
@@ -46,17 +43,22 @@ For our model, we used a two-layer Long Short Term Model (LSTM) with 512 hidden 
 
 Each input word in our input question is one-hot encoded in a Bag of Words model, and then padded our questions to account for variable question lengths. Each one-hot word vector from each question is then passed into the LSTM. We take the final cell state and hidden state from the last LSTM unit and concatenate them to form our question embedding.
 
-## Our Models 
-
-### Baseline FCNN
-![](3.png)
-
 ## Attention 
 The conceptual idea behind attention in machine learning is to give conditional focus to certain features of an input conditioned on that input. For instance, in the question “Do you like dogs or cats?” The words “like”, “dogs”, and “cats” are more important than “Do”, “you”, and “or”. Attention is an attempt at modeling this behavior. In our case we use visual attention, so instead of focusing on particular portions of a question we use the question to highlight the important features of the image. This can be thought of as pointing a flashlight at a certain part of an image in the dark, and using only what you see to answer a question. 
 
 ![](4.png)
 
-\[Figure 4] In this picture attention allows our algorithm to focus on the image features that are important to the question, like things that look like phone booths.
+[Figure 4] In this picture attention allows our algorithm to focus on the image features that are important to the question, like things that look like phone booths.
+
+
+## Our Models 
+
+### Baseline FCNN
+![](3.png)
+
+We first use VGG-16, a pre-trained convolutional neural network model, to understand our image and convert it to a 1024 fully connected layer. This “feature” vector is fed into a dense layer and provides a summary of the image. For the question, each word is fed into a dense layer and then an LSTM to generate an embedding. We concatenate the final hidden state and cell state and feed this embedding into a dense layer. The image vector and question vector are then fused through pointwise multiplication, and this final vector is fed into two dense layers with dropout. Finally, a softmax layer outputs the answer to the question by selecting the most probable outcome out of the top 1000 answer choices.
+
+### Attention Model
 
 In the paper that inspired our model they used two forms of attention: word based attention (i.e. the attention given to the image embedding based on each individual word in the question) and evidence or semantic attention (attention based on the entire question). Our model varies in that we use a recurrent model for our attention. Instead of combining the attention for each individual word with the attention for the entire question we allow our attention to be tuned sequentially through the question, similar to how a human would interpret a question about an image. 
 
