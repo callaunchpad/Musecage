@@ -373,15 +373,8 @@ class Pipeline():
 
     def get_classifier_accuracy(self, model, sess=None):
         """
-        Outputs an accuracy dictionary that splits accuracies into the three different answer types: 
-        "yes/no", "number", and "other."
-
-        Args:
-            - model: Classifier model
-            - sess: tf session
-        Return:
-            - ans_type_dict: accruacy dictionary
-
+        Outputs the classifier accuracy: 
+        - model: the classifier model to generate accuracy on
         """
         if not sess:
             print("No session inputed")
@@ -445,13 +438,15 @@ def get_model_accuracy(embed_type="RNN", save_path="../saved_models/RNN_model/RN
         saver.restore(sess, save_path)
         p.get_accuracy(p.get_accuracy_dict(model, model_name=model_name, sess=sess))
 
-def get_classifier_prediction(save_path = "../model_/499-499", split_val=0.8,n_hidden=512, embed_size=300, dense_size = 3, data_len = 1000):
+def get_classifier_prediction(save_path = "../model_/499-499", split_val=0.8,n_hidden=512, embed_size=300, dense_size = 3, data_len = 90000):
     """
-    Gets the accuracy for the given model:
-        - embed_type: question embedding model (RNN, GloVe, or Word2Vec)
-        - save_path: save path for model
-        - data_len: length of question data used
-        - split_val: train/test split ratio
+    Gets the accuracy for the classifier:
+        - save_path: path to saved trained model
+        - split_val: percentage validation split
+        - n_hidden: number of hidden units in LSTM
+        - embed_size: dimention of word2vec embeddings
+        - dense_size: number of dense layer neurons
+        - data_len: number of words to calculate our accuracy on
     """
 
     data_arr = (get_by_ques_type([], train=True) + get_by_ques_type([], train=False))[:data_len]
@@ -531,21 +526,10 @@ def train_FCNN(data_len=90000, vocab_size=1000, embed_size=300, output_size=1000
         np.savez(savedir+"train_losses_%s_%d.npz"%(embed_type, train_step), np.array(train_losses))
         np.savez(savedir+"test_losses_%s_%d.npz"%(embed_type, train_step), np.array(test_losses))
 
-def train_attention_rnn(data_len=90000, embed_size=300, output_size=1000, pointwise_layer_size=1024, net_struct={'h1':1000},
-        cnn_input_size=4096, embed_type="Word2Vec", start_lr=1e-5, num_epochs=2, savedir="../model_attention_1k_2ep_no_dropout_lower_lr/", verbose=True, verbose_freq=10, save=True, save_freq=100):
-    """
-    Trains the Attention model based on:
-        - data_len: number of data points to train and test on
-        - vocab_size: number of top words the model will choose a solution from
-        - pointwise_layer_size: dimension of the pointwise layer
-        - output_size: dimension of the output layer
-        - embed_size: dimension of the question embedding
-        - cnn_input_size: dimention of the image embedding
-        - embed_type: type of question embedding used; can be "Glove", "Word2Vec", or "RNN"
-        - savedir: path of directory to save the trained models in
-        - verbose: (boolean) prints out train and test losses every step
-        - save: (boolean) saves model in ./savedir/ 
-    """
+def train_classifier(num_epochs = 1, save=True, save_freq=100, savedir="../model_/", 
+            verbose=True, verbose_freq=10, data_len = 90000, n_hidden=512, 
+            embed_size=300, dense_size = 3, lr=1e-3, loss_fn=tf.nn.sparse_softmax_cross_entropy_with_logits):
+
     data_arr = (get_by_ques_type([], train=True) + get_by_ques_type([], train=False))[:data_len]
     print(len(data_arr))
 
@@ -608,73 +592,73 @@ def train_attention_rnn(data_len=90000, embed_size=300, output_size=1000, pointw
         np.savez(savedir+"train_losses_%d.npz"%(train_step), np.array(train_losses))
         np.savez(savedir+"test_losses_%d.npz"%(train_step), np.array(test_losses))
 
-# def train_attention_rnn(data_len=90000, embed_size=300, output_size=1000, pointwise_layer_size=1024, net_struct={'h1':1000},
-#         cnn_input_size=4096, embed_type="Word2Vec", start_lr=1e-4, num_epochs=1, savedir="../model_/", verbose=True, verbose_freq=10, save=True, save_freq=100):
-#     """
-#     Trains the Attention model based on:
-#         - data_len: number of data points to train and test on
-#         - vocab_size: number of top words the model will choose a solution from
-#         - pointwise_layer_size: dimension of the pointwise layer
-#         - output_size: dimension of the output layer
-#         - embed_size: dimension of the question embedding
-#         - cnn_input_size: dimention of the image embedding
-#         - embed_type: type of question embedding used; can be "Glove", "Word2Vec", or "RNN"
-#         - savedir: path of directory to save the trained models in
-#         - verbose: (boolean) prints out train and test losses every step
-#         - save: (boolean) saves model in ./savedir/ 
-#     """
-#     data_arr = (get_by_ques_type([], train=True) + get_by_ques_type([], train=False))[:data_len]
+def train_attention_rnn(data_len=90000, embed_size=300, output_size=1000, pointwise_layer_size=1024, net_struct={'h1':1000},
+        cnn_input_size=4096, embed_type="Word2Vec", start_lr=1e-4, num_epochs=1, savedir="../model_/", verbose=True, verbose_freq=10, save=True, save_freq=100):
+    """
+    Trains the Attention model based on:
+        - data_len: number of data points to train and test on
+        - vocab_size: number of top words the model will choose a solution from
+        - pointwise_layer_size: dimension of the pointwise layer
+        - output_size: dimension of the output layer
+        - embed_size: dimension of the question embedding
+        - cnn_input_size: dimention of the image embedding
+        - embed_type: type of question embedding used; can be "Glove", "Word2Vec", or "RNN"
+        - savedir: path of directory to save the trained models in
+        - verbose: (boolean) prints out train and test losses every step
+        - save: (boolean) saves model in ./savedir/ 
+    """
+    data_arr = (get_by_ques_type([], train=True) + get_by_ques_type([], train=False))[:data_len]
 
-#     p = Pipeline(data_arr, embed_type=embed_type)
-#     p.create_split()
+    p = Pipeline(data_arr, embed_type=embed_type)
+    p.create_split()
 
-#     train_step = 0
-#     curr_samples = 0
+    train_step = 0
+    curr_samples = 0
 
-#     train_losses = []
-#     test_losses = []
+    train_losses = []
+    test_losses = []
 
-#     attention = AttentionRNN(cnn_input_size, output_size, embed_size=embed_size, net_struct=net_struct, start_lr=start_lr)
+    attention = AttentionRNN(cnn_input_size, output_size, embed_size=embed_size, net_struct=net_struct, start_lr=start_lr)
 
-#     sess = tf.Session()
-#     tf.global_variables_initializer().run(session=sess)
+    sess = tf.Session()
+    tf.global_variables_initializer().run(session=sess)
 
-#     for epoch in range(num_epochs):
-#         while p.next_batch(train=True, replace=False):
-#             start_time = time.time()
-#             train_qs, train_ims, train_ans, ans_types, all_ans = p.batch_attention()
+    for epoch in range(num_epochs):
+        while p.next_batch(train=True, replace=False):
+            start_time = time.time()
+            train_qs, train_ims, train_ans, ans_types, all_ans = p.batch_attention()
 
-#             train_step += 1
-#             batch_samples = len(train_qs)
-#             curr_samples += batch_samples
+            train_step += 1
+            batch_samples = len(train_qs)
+            curr_samples += batch_samples
 
-#             if len(train_qs) > 0:
-#                 train_loss = attention.train_step(sess, np.array(train_ims), np.array(train_qs), np.array(train_ans))
-#                 train_losses.append(train_loss)
+            if len(train_qs) > 0:
+                train_loss = attention.train_step(sess, np.array(train_ims), np.array(train_qs), np.array(train_ans))
+                train_losses.append(train_loss)
                 
-#             p.next_batch(train=False, replace=True)
-#             test_qs, test_ims, test_ans, ans_types, all_ans = p.batch_attention()
-#             if len(test_qs) > 0:
-#                 test_loss = attention.evaluate(sess, np.array(test_ims), np.array(test_qs), np.array(test_ans))
-#                 test_losses.append(test_loss)
+            p.next_batch(train=False, replace=True)
+            test_qs, test_ims, test_ans, ans_types, all_ans = p.batch_attention()
+            if len(test_qs) > 0:
+                test_loss = attention.evaluate(sess, np.array(test_ims), np.array(test_qs), np.array(test_ans))
+                test_losses.append(test_loss)
         
-#             if train_step % save_freq == 0 and save:
-#                 tf.train.Saver().save(sess, savedir+"%s_%d"%(embed_type, train_step), global_step=train_step)
-#                 np.savez(savedir+"train_losses_%s_%d.npz"%(embed_type, train_step), np.array(train_losses))
-#                 np.savez(savedir+"test_losses_%s_%d.npz"%(embed_type, train_step), np.array(test_losses))
+            if train_step % save_freq == 0 and save:
+                tf.train.Saver().save(sess, savedir+"%s_%d"%(embed_type, train_step), global_step=train_step)
+                np.savez(savedir+"train_losses_%s_%d.npz"%(embed_type, train_step), np.array(train_losses))
+                np.savez(savedir+"test_losses_%s_%d.npz"%(embed_type, train_step), np.array(test_losses))
 
-#             end_time = time.time()
-#             if train_step % verbose_freq == 0 and verbose:
-#                 print("TRAIN STEP: %d | SAMPLES IN TRAIN BATCH: %d | TRAIN SAMPLES SO FAR: %d | TRAIN LOSS: %f | TEST LOSS: %f" %(train_step, batch_samples, curr_samples, train_loss, test_loss))
-#                 print("Time elapsed: ", end_time - start_time, " seconds")
-#         if verbose:
-#             print("********************FINISHED EPOCH %d********************"%(epoch))
-#         p.reset_batch(train=True)
+            end_time = time.time()
+            if train_step % verbose_freq == 0 and verbose:
+                print("TRAIN STEP: %d | SAMPLES IN TRAIN BATCH: %d | TRAIN SAMPLES SO FAR: %d | TRAIN LOSS: %f | TEST LOSS: %f" %(train_step, batch_samples, curr_samples, train_loss, test_loss))
+                print("Time elapsed: ", end_time - start_time, " seconds")
+        if verbose:
+            print("********************FINISHED EPOCH %d********************"%(epoch))
+        p.reset_batch(train=True)
 
-#     if save:
-#         tf.train.Saver().save(sess, savedir+"%s_%d"%(embed_type, train_step), global_step=train_step)
-#         np.savez(savedir+"train_losses_%s_%d.npz"%(embed_type, train_step), np.array(train_losses))
-#         np.savez(savedir+"test_losses_%s_%d.npz"%(embed_type, train_step), np.array(test_losses))
+    if save:
+        tf.train.Saver().save(sess, savedir+"%s_%d"%(embed_type, train_step), global_step=train_step)
+        np.savez(savedir+"train_losses_%s_%d.npz"%(embed_type, train_step), np.array(train_losses))
+        np.savez(savedir+"test_losses_%s_%d.npz"%(embed_type, train_step), np.array(test_losses))
 
 def predict(sess, im_path="test.png", q="what is the girl Alicia drinking"):
     """
@@ -789,4 +773,4 @@ train_FCNN(pointwise_layer_size=1024, net_struct={'h1':1000}, savedir="../model_
 # train_attention_rnn()
 
 # train_classifier()
-# get_classifier_prediction(save_path = "../model_/12-12")
+get_classifier_prediction(save_path = "../model_/1124-1124")
