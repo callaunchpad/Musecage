@@ -1,7 +1,7 @@
 # Musecage Visual Question Answering Model
 
 ## Overview 
-The goal of this project was to be able to build a network that would be able to answer a question about a given image. 
+The goal of this project was to build a network that would be able to answer a question about a given image. 
 
 Examples of some images and answers are shown here. 
 ![](1.png)
