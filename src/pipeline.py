@@ -418,7 +418,7 @@ class Pipeline():
         print("total accuracy: ", total_correct/total)
 
 def get_model_accuracy(embed_type="RNN", save_path="../saved_models/RNN_model/RNN_749-749", model_name="FCNN", data_len=90000, split_val=.8, net_struct={'h1':1000},
-                        cnn_input_size=4096, start_lr=1e-4, pointwise_layer_size=1024, output_size=1000, vocab_size=1000, embed_size=300):
+                        cnn_input_size=4096, start_lr=1e-4, pointwise_layer_size=1024, output_size=1000, vocab_size=1000, embed_size=300, qtype_nhidden=512, qtype_dense_size=3):
     """
     Gets the accuracy for the given model:
         - embed_type: question embedding model (RNN, GloVe, or Word2Vec)
@@ -431,32 +431,14 @@ def get_model_accuracy(embed_type="RNN", save_path="../saved_models/RNN_model/RN
         model = FCNN(cnn_input_size, pointwise_layer_size, output_size, vocab_size, net_struct=net_struct, embed_type=embed_type, start_lr=start_lr)
     elif model_name == "AttentionRNN":
         model = AttentionRNN(cnn_input_size, output_size, net_struct=net_struct, embed_size=embed_size, start_lr=start_lr)
+    elif model_name == "QTypeClassifier":
+        model = QTypeClassifier(n_hidden=qtype_nhidden, embed_size=embed_size, dense_size=qtype_dense_size)
     p = Pipeline(data_arr, embed_type=embed_type)
     p.create_split(split_val=split_val)
     with tf.Session() as sess:
         saver = tf.train.Saver()
         saver.restore(sess, save_path)
         p.get_accuracy(p.get_accuracy_dict(model, model_name=model_name, sess=sess))
-
-def get_classifier_prediction(save_path = "../model_/499-499", split_val=0.8,n_hidden=512, embed_size=300, dense_size = 3, data_len = 90000):
-    """
-    Gets the accuracy for the classifier:
-        - save_path: path to saved trained model
-        - split_val: percentage validation split
-        - n_hidden: number of hidden units in LSTM
-        - embed_size: dimention of word2vec embeddings
-        - dense_size: number of dense layer neurons
-        - data_len: number of words to calculate our accuracy on
-    """
-
-    data_arr = (get_by_ques_type([], train=True) + get_by_ques_type([], train=False))[:data_len]
-    classifier = QTypeClassifier(n_hidden=512, embed_size=300, dense_size = 3) 
-    p = Pipeline(data_arr, embed_type = "Word2Vec")
-    p.create_split(split_val = split_val)
-    with tf.Session() as sess:
-        saver = tf.train.Saver()
-        saver.restore(sess, save_path)
-        p.get_classifier_accuracy(classifier, sess)
 
 def train_FCNN(data_len=90000, vocab_size=1000, embed_size=300, output_size=1000, pointwise_layer_size=1024, net_struct={'h1':1000},
         cnn_input_size=4096, embed_type="RNN", start_lr=1e-4, num_epochs=1, savedir="../model_/", verbose=True, verbose_freq=10, save=True, save_freq=100):
