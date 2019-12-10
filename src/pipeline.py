@@ -373,15 +373,8 @@ class Pipeline():
 
     def get_classifier_accuracy(self, model, sess=None):
         """
-        Outputs an accuracy dictionary that splits accuracies into the three different answer types: 
-        "yes/no", "number", and "other."
-
-        Args:
-            - model: Classifier model
-            - sess: tf session
-        Return:
-            - ans_type_dict: accruacy dictionary
-
+        Outputs the classifier accuracy: 
+        - model: the classifier model to generate accuracy on
         """
         if not sess:
             print("No session inputed")
@@ -447,11 +440,13 @@ def get_model_accuracy(embed_type="RNN", save_path="../saved_models/RNN_model/RN
 
 def get_classifier_prediction(save_path = "../model_/499-499", split_val=0.8,n_hidden=512, embed_size=300, dense_size = 3, data_len = 90000):
     """
-    Gets the accuracy for the given model:
-        - embed_type: question embedding model (RNN, GloVe, or Word2Vec)
-        - save_path: save path for model
-        - data_len: length of question data used
-        - split_val: train/test split ratio
+    Gets the accuracy for the classifier:
+        - save_path: path to saved trained model
+        - split_val: percentage validation split
+        - n_hidden: number of hidden units in LSTM
+        - embed_size: dimention of word2vec embeddings
+        - dense_size: number of dense layer neurons
+        - data_len: number of words to calculate our accuracy on
     """
 
     data_arr = (get_by_ques_type([], train=True) + get_by_ques_type([], train=False))[:data_len]
