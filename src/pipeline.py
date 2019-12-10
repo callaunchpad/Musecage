@@ -435,7 +435,7 @@ def get_model_accuracy(embed_type="RNN", save_path="../saved_models/RNN_model/RN
         saver.restore(sess, save_path)
         p.get_accuracy(p.get_accuracy_dict(fcnn, sess))
 
-def get_classifier_prediction(save_path = "../model_/499-499", split_val=0.8,n_hidden=512, embed_size=300, dense_size = 3, data_len = 1000):
+def get_classifier_prediction(save_path = "../model_/499-499", split_val=0.8,n_hidden=512, embed_size=300, dense_size = 3, data_len = 90000):
     """
     Gets the accuracy for the given model:
         - embed_type: question embedding model (RNN, GloVe, or Word2Vec)
@@ -522,7 +522,7 @@ def train_FCNN(data_len=90000, vocab_size=1000, embed_size=300, output_size=1000
         np.savez(savedir+"test_losses_%s_%d.npz"%(embed_type, train_step), np.array(test_losses))
 
 def train_classifier(num_epochs = 1, save=True, save_freq=100, savedir="../model_/", 
-            verbose=True, verbose_freq=10, data_len = 1000, n_hidden=512, 
+            verbose=True, verbose_freq=10, data_len = 90000, n_hidden=512, 
             embed_size=300, dense_size = 3, lr=1e-3, loss_fn=tf.nn.sparse_softmax_cross_entropy_with_logits):
 
     data_arr = (get_by_ques_type([], train=True) + get_by_ques_type([], train=False))[:data_len]
@@ -762,5 +762,5 @@ def plot(train_steps, train_losses, test_losses):
 # train_attention_rnn()
 #when we train fix loading for npz files
 
-train_classifier()
-# get_classifier_prediction(save_path = "../model_/12-12")
+# train_classifier()
+get_classifier_prediction(save_path = "../model_/1124-1124")
