@@ -8,7 +8,7 @@ Examples of some images and answers are shown here.
 
 [Figure 1] We used the MSCOCO dataset for our model. The scenes are simple, and the questions below were generated from asking many people to write a question that is required to use the picture. The images with the questions were then given to others to answer the questions. We trained our model on the image, question pairs as our input, and the answers as our output.
 
-This task can be broken down into three parts: *image embeddings, word embeddings, and recurrent attention*.
+This task can be broken down into three parts: **image embeddings, word embeddings, and recurrent attention**.
 
 ## Baseline Model 
 The first model we tried is relatively simple. We use the [K-Nearest Neighbors](https://towardsdatascience.com/machine-learning-basics-with-the-k-nearest-neighbors-algorithm-6a6e71d01761) algorithm to find the most suitable answer to a given image, question pair in the following process. Using the question embeddings we find the K-nearest questions to the test question. From this set of K-questions, each of which map to an image, find the image embedding which is closest to the test image. The image closest to our image and its associated question give us our predicted answer (i.e. the most common answer given to that question paired with that image). This model achieved relatively poor results: Yes/No accuracy: 57.33%, Overall: 5.267%. Since this algorithm is very computationally expensive to train we didn’t train it on much data, and since KNN performance is highly dependent on the diversity of the data you train it on, training the KNN on more data could increase its performance.
@@ -58,19 +58,20 @@ The conceptual idea behind attention in machine learning is to give conditional 
 
 We first use VGG-16, a pre-trained convolutional neural network model, to understand our image and convert it to a 1024 fully connected layer. This “feature” vector is fed into a dense layer and provides a summary of the image. For the question, each word is fed into a dense layer and then an LSTM to generate an embedding. We concatenate the final hidden state and cell state and feed this embedding into a dense layer. The image vector and question vector are then fused through pointwise multiplication, and this final vector is fed into two dense layers with dropout. Finally, a softmax layer outputs the answer to the question by selecting the most probable outcome out of the top 1000 answer choices.
 
-### Attention Model
+## Attention Model
+
+![](5.png)
 
 In the paper that inspired our model they used two forms of attention: word based attention (i.e. the attention given to the image embedding based on each individual word in the question) and evidence or semantic attention (attention based on the entire question). Our model varies in that we use a recurrent model for our attention. Instead of combining the attention for each individual word with the attention for the entire question we allow our attention to be tuned sequentially through the question, similar to how a human would interpret a question about an image. 
 
 First, the model embeds each image into a 4096-dimension vector using the final dense layer of VGG-16. This vector summarizes the features of the image, and is then passed into a dense layer to output a 300-dim vector. Each word of the question is then passed through Word2Vec to generate a vector that encapsulates the word’s meaning, which is then combined with the image vector through pointwise multiplication. This combination is passed through a softmax layer to output a “mask” that highlights where the word appears in the image. The mask is multiplied by the original image vector to reintroduce the image features, and then we concatenate this “attention image” with our initial word vector to create an image-word combination that tells the model where to look. To preserve the structure of the question, we feed each image-word vector into a two-layer LSTM. The LSTM outputs into two dense layers with dropout, and finally, the output is fed through a softmax layer to produce the answer.
 
-![](5.png)
-
-### Classifier
+## Classifier
 
 We trained a question type classifier to predict the type of answer our input question was looking for: Yes/No, Number, or Other. Using Word2Vec embeddings for each word in the question, we passed the vector representation of each word into an LSTM with 512 hidden units. The final hidden and cell states of the LSTM are then concatenated to form our question embedding. That question embedding is finally fed through a dense network layer with softmax activation to output of the most likely answer type the question is looking for. After training the classifier on the entire dataset, it achieved an accuracy of 96%. 
 
-_Sources: We are basing this project off of the paper [Ask, Attend and Answer: Exploring Question-Guided Spatial Attention for Visual Question Answering](https://arxiv.org/pdf/1511.05234.pdf). They combine an LSTM with a CNN in order to understand a question (LSTM) along with an image (CNN) well enough to provide an accurate answer._ 
+## Sources
+_We are basing this project off of the paper [Ask, Attend and Answer: Exploring Question-Guided Spatial Attention for Visual Question Answering](https://arxiv.org/pdf/1511.05234.pdf). They combine an LSTM with a CNN in order to understand a question (LSTM) along with an image (CNN) well enough to provide an accurate answer._ 
 
 
 
